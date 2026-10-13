@@ -1,0 +1,154 @@
+.diagram {
+  position: relative;
+  min-width: 0;
+  min-height: 240px;
+  overflow: hidden;
+  contain: layout paint style;
+}
+
+.diagram-surface,
+.diagram-ink,
+.diagram-nodes,
+.diagram-labels { position: absolute; inset: 0; }
+.diagram-surface { pointer-events: none; }
+.diagram-ink { position: sticky; inset: 0 auto auto 0; display: block; pointer-events: none; }
+.diagram-nodes { z-index: 2; }
+.diagram-labels { z-index: 3; }
+
+.diagram-node {
+  position: absolute;
+  inset: 0 auto auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: var(--node-size);
+  height: var(--node-size);
+  padding: 0;
+  border: 1.65px solid var(--copper, #e0a458);
+  border-radius: 50%;
+  background: #153e33;
+  color: var(--silk, #eaf2ec);
+  opacity: 0;
+  font-family: 'Archivo Variable', Archivo, sans-serif;
+  font-weight: 550;
+  font-size: 17px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 400ms cubic-bezier(.2,.8,.3,1), opacity 160ms ease, translate 160ms ease;
+}
+
+.diagram-node::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #ff5bad59, inset 0 0 10px #ff5bad1c;
+  opacity: 0;
+  transition: opacity 180ms ease;
+  pointer-events: none;
+}
+
+.diagram-node::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 9px 14px #00000070;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  pointer-events: none;
+}
+
+.diagram-node.is-formed { opacity: 1; }
+.diagram-node.is-forming { border-color: transparent; }
+.diagram-node.is-active { border-color: var(--mint, #7ce3c3); background: #1b493c; }
+.diagram-node.is-active::before { opacity: 0.65; }
+.diagram-node:hover { translate: 0 -3px; }
+.diagram-node:hover::after { opacity: 1; }
+.diagram-node:focus-visible { outline: 2px solid var(--silk, #eaf2ec); outline-offset: 5px; }
+.diagram-node.is-unreachable { opacity: 0.4; }
+.diagram-node.is-fault { border-color: var(--fault, #ff6b6b); }
+.diagram-node.is-reading::before, .diagram-node.is-arriving::before { opacity: 1; }
+
+.diagram-node-name {
+  position: relative;
+  max-width: calc(var(--node-size) - 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.diagram-node.is-moore .diagram-node-name {
+  min-width: 29px;
+  padding: 0 4px 3px;
+  border-bottom: 1px solid #f5b90a66;
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+.diagram-node-output {
+  padding-top: 3px;
+  color: var(--mint, #7ce3c3);
+  font-family: 'Doto Variable', Doto, monospace;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.diagram-edge-label {
+  position: absolute;
+  inset: 0 auto auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 33px;
+  padding: 5px 8px;
+  border: 1px solid #f5b90a29;
+  border-radius: 10px;
+  background: #123d30;
+  color: var(--silk, #eaf2ec);
+  opacity: 0;
+  translate: 0 4px;
+  font-family: 'Archivo Variable', Archivo, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-align: center;
+  transition: opacity 160ms ease, translate 160ms ease, transform 400ms cubic-bezier(.2,.8,.3,1);
+  pointer-events: none;
+}
+
+.diagram-edge-label.is-visible { opacity: 1; translate: 0 0; }
+.diagram-edge-label.is-unreachable.is-visible { opacity: 0.4; }
+.diagram-edge-symbol { display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
+.edge-slash { color: var(--muted); font-size: 11px; }
+.edge-output { color: var(--mint, #7ce3c3); }
+.diagram-edge-more { color: var(--muted, #afc3b8); font-size: 10px; }
+.diagram-edge-label.is-traversed { background: #301b27; border-color: #ff5bad77; }
+
+.diagram-start-label {
+  position: absolute;
+  inset: 0 auto auto 0;
+  color: var(--muted);
+  font: 400 11px/1 'Archivo Variable', Archivo, sans-serif;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.diagram-start-label.is-visible { opacity: 1; }
+
+.diagram-reduced .diagram-node,
+.diagram-reduced .diagram-edge-label { transition: opacity 150ms ease; }
+.diagram-reduced .diagram-node:hover { translate: 0 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .diagram-node, .diagram-edge-label { transition: opacity 150ms ease; }
+  .diagram-node:hover { translate: 0 0; }
+}
+
+@media (prefers-contrast: more) {
+  .diagram-node { border-width: 2px; background: #072219; }
+  .diagram-edge-label { border-color: #e0a458; background: #072219; }
+}

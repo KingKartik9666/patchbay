@@ -1,0 +1,105 @@
+[
+  {
+    "draft": {
+      "kind": "moore",
+      "states": [
+        {
+          "id": "s0",
+          "name": "A",
+          "x": 0,
+          "y": 35,
+          "output": "0"
+        },
+        {
+          "id": "s1",
+          "name": "B",
+          "x": 565,
+          "y": 236,
+          "output": "0"
+        }
+      ],
+      "transitions": [
+        {
+          "id": "t5",
+          "from": "s1",
+          "to": "s1",
+          "input": "1",
+          "output": "1"
+        },
+        {
+          "id": "t4",
+          "from": "s1",
+          "to": "s0",
+          "input": "0",
+          "output": "0"
+        },
+        {
+          "id": "t3",
+          "from": "s0",
+          "to": "s1",
+          "input": "1",
+          "output": "0"
+        },
+        {
+          "id": "t2",
+          "from": "s0",
+          "to": "s0",
+          "input": "0",
+          "output": "0"
+        }
+      ],
+      "alphabet": [
+        "0",
+        "1"
+      ],
+      "start": "s0",
+      "nextId": 6
+    },
+    "source": "type moore\nstart A\nalphabet 0 1\nstate A\nstate B\nout A 0\nout B 0\n\nA 0 A\nA 1 B\nB 0 A\nB 1 B\n",
+    "file": "{\n  \"format\": \"patchbay-graph\",\n  \"version\": 1,\n  \"draft\": {\n    \"kind\": \"moore\",\n    \"start\": \"s0\",\n    \"nextId\": 6,\n    \"alphabet\": [\n      \"0\",\n      \"1\"\n    ],\n    \"states\": [\n      {\n        \"id\": \"s0\",\n        \"name\": \"A\",\n        \"output\": \"0\",\n        \"x\": 0,\n        \"y\": 35\n      },\n      {\n        \"id\": \"s1\",\n        \"name\": \"B\",\n        \"output\": \"0\",\n        \"x\": 565,\n        \"y\": 236\n      }\n    ],\n    \"transitions\": [\n      {\n        \"id\": \"t5\",\n        \"from\": \"s1\",\n        \"to\": \"s1\",\n        \"input\": \"1\",\n        \"output\": \"1\"\n      },\n      {\n        \"id\": \"t4\",\n        \"from\": \"s1\",\n        \"to\": \"s0\",\n        \"input\": \"0\",\n        \"output\": \"0\"\n      },\n      {\n        \"id\": \"t3\",\n        \"from\": \"s0\",\n        \"to\": \"s1\",\n        \"input\": \"1\",\n        \"output\": \"0\"\n      },\n      {\n        \"id\": \"t2\",\n        \"from\": \"s0\",\n        \"to\": \"s0\",\n        \"input\": \"0\",\n        \"output\": \"0\"\n      }\n    ]\n  }\n}\n",
+    "errors": []
+  },
+  {
+    "draft": {
+      "kind": "mealy",
+      "states": [
+        {
+          "id": "s0",
+          "name": "q0",
+          "output": "0",
+          "x": 160,
+          "y": 200
+        },
+        {
+          "id": "s1",
+          "name": "q1",
+          "output": "0",
+          "x": 430,
+          "y": 200
+        }
+      ],
+      "transitions": [
+        {
+          "id": "t2",
+          "from": "s0",
+          "to": "s1",
+          "input": "coin",
+          "output": "unlock"
+        }
+      ],
+      "alphabet": [
+        "coin",
+        "push"
+      ],
+      "start": "s0",
+      "nextId": 3
+    },
+    "source": "type mealy\nstart q0\nalphabet coin push\nstate q0\nstate q1\n\nq0 coin q1 unlock\n",
+    "file": "{\n  \"format\": \"patchbay-graph\",\n  \"version\": 1,\n  \"draft\": {\n    \"kind\": \"mealy\",\n    \"start\": \"s0\",\n    \"nextId\": 3,\n    \"alphabet\": [\n      \"coin\",\n      \"push\"\n    ],\n    \"states\": [\n      {\n        \"id\": \"s0\",\n        \"name\": \"q0\",\n        \"output\": \"0\",\n        \"x\": 160,\n        \"y\": 200\n      },\n      {\n        \"id\": \"s1\",\n        \"name\": \"q1\",\n        \"output\": \"0\",\n        \"x\": 430,\n        \"y\": 200\n      }\n    ],\n    \"transitions\": [\n      {\n        \"id\": \"t2\",\n        \"from\": \"s0\",\n        \"to\": \"s1\",\n        \"input\": \"coin\",\n        \"output\": \"unlock\"\n      }\n    ]\n  }\n}\n",
+    "errors": [
+      "State q0 has no transition for \"push\". Connect a target or fill missing self-loops.",
+      "State q1 has no transition for \"coin\". Connect a target or fill missing self-loops.",
+      "State q1 has no transition for \"push\". Connect a target or fill missing self-loops."
+    ]
+  }
+]

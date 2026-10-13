@@ -1,0 +1,181 @@
+/* Monochrome surfaces. Light/dark colors are exact RGB inverses for the theme
+   wave. Nunito Latin variable: @fontsource-variable/nunito 5.3.0, OFL-1.1.
+   https://fontsource.org/fonts/nunito/about — license: fonts/Nunito-OFL.txt */
+@font-face {
+  font-family: 'Nunito Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 1000;
+  src: url('./fonts/nunito-latin-variable.woff2') format('woff2');
+}
+:root {
+  color-scheme: light;
+  font-family: 'Nunito Variable', 'Archivo Variable', Archivo, system-ui, sans-serif;
+  font-size: 14px;
+  color: #101010;
+  background: #f4f4f4;
+  --mask: #f4f4f4;
+  --deep: #ffffff;
+  --solid: #efefef;
+  --silk: #101010;
+  --muted: #555555;
+  --line: #b0b0b0;
+  --copper: #161616;
+  --mint: #161616;
+  --brand: #161616;
+  --fault: #242424;
+  --display: 'Nunito Variable', 'Archivo Variable', Archivo, system-ui, sans-serif;
+  --r-10: 12px;
+  --r-16: 18px;
+  --r-24: 24px;
+  --hover: color-mix(in srgb, var(--silk) 6%, var(--deep));
+  --selected: color-mix(in srgb, var(--silk) 10%, var(--deep));
+  --shadow: color-mix(in srgb, var(--silk) 9%, transparent);
+  --halo: color-mix(in srgb, var(--silk) 12%, transparent);
+}
+:root[data-theme=dark] {
+  color-scheme: dark;
+  color: #efefef;
+  background: #0b0b0b;
+  --mask: #0b0b0b;
+  --deep: #000000;
+  --solid: #101010;
+  --silk: #efefef;
+  --muted: #aaaaaa;
+  --line: #4f4f4f;
+  --copper: #e9e9e9;
+  --mint: #e9e9e9;
+  --brand: #e9e9e9;
+  --fault: #dbdbdb;
+}
+body { background: var(--mask); color: var(--silk); }
+#board, #frost { display: none !important; }
+.titlebar { background: var(--deep); border-bottom-color: var(--line); }
+.titlebar-logo svg { color: var(--silk); }
+.window-controls button:hover { background: var(--hover); color: var(--silk); }
+.window-controls #window-close:hover { background: var(--brand); color: var(--deep); }
+.glass, .sheet { background: var(--deep); border: 1px solid var(--line); box-shadow: 0 16px 40px -28px var(--shadow); }
+.glass::before { display: none; }
+:root[data-glass=solid] .glass, :root[data-glass=solid] .sheet { background: var(--solid); }
+select, input, textarea { background: var(--deep); border-color: var(--line); color: var(--silk); }
+kbd { border-color: var(--line); background: var(--deep); color: var(--muted); border-radius: 6px; }
+::selection { background: var(--brand); color: var(--deep); }
+.wordmark { font-family: var(--display); font-weight: 850; font-size: clamp(32px, 3.1vw, 46px); letter-spacing: -.055em; font-stretch: normal; }
+.wordmark span { color: var(--brand); }
+.workspace-header { height: 124px; }
+.workspace-header p, .local-chip { font-family: var(--display); font-size: 12px; letter-spacing: 0; }
+.workspace-eyebrow, .graph-eyebrow { font-family: var(--display); font-size: 11px; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.app-footer, .diagram-counts, .build-status, .kind-badge { font-family: var(--display); font-size: 12px; letter-spacing: 0; }
+.editor-intro { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 0 4px 24px; }
+.editor-intro h1 { font-family: var(--display); font-weight: 850; letter-spacing: -.045em; font-size: clamp(30px, 3.2vw, 44px); line-height: 1.15; margin-top: 9px; }
+.editor-intro h1 span { color: var(--silk); }
+.editor-intro p { font-size: 13px; color: var(--muted); text-align: right; }
+.view-heading h1, .machine-heading h1, .drawer-header h2, .learn-comparison h2, .graph-heading h1 { font-family: var(--display); font-weight: 850; letter-spacing: -.04em; line-height: 1.15; }
+.view-heading h1 { font-size: clamp(30px, 3.2vw, 44px); }
+.machine-heading h1 { font-size: 27px; }
+.machine-heading p, .view-heading p { font-size: 13px; }
+.machine-emblem { background: var(--solid); border-color: var(--line); color: var(--silk); }
+.library-count, .graph-empty-mark, .trace-counter > strong { font-family: var(--display); font-weight: 750; }
+.nav-item { color: var(--muted); --ia: var(--muted); }
+.nav-item:hover { background: var(--hover); color: var(--silk); --ia: var(--silk); }
+.nav-item.active { color: var(--silk); --ia: var(--silk); background: var(--selected); border-color: var(--line); }
+.nav-tooltip { background: var(--deep); border-color: var(--line); }
+.icon-button { border: 1px solid transparent; }
+.icon-button:hover:not(:disabled) { background: var(--hover); color: var(--silk); border-color: var(--line); }
+.icon-button[aria-pressed=true] { background: var(--selected); color: var(--silk); border-color: var(--line); }
+.diagram-toolbar { border-top-color: var(--line); }
+.diagram-edit-actions { display: flex; gap: 16px; }
+.kind-switch { background: var(--solid); border-radius: 999px; }
+.kind-switch button { border-radius: 999px; font-size: 13px; }
+.kind-switch button[aria-pressed=true] { background: var(--deep); color: var(--silk); box-shadow: 0 1px 4px var(--shadow); }
+.active-chip { background: var(--solid); border-radius: 999px; }
+.active-chip b { color: var(--silk); }
+.quiet-button, .text-button, .load-button, .secondary-button { font-size: 12px; }
+.primary-button, .play-button { background: var(--brand); color: var(--deep); border: 1px solid var(--brand); border-radius: 999px; font-weight: 800; box-shadow: none; }
+.primary-button:hover:not(:disabled), .play-button:hover:not(:disabled) { background: var(--silk); border-color: var(--silk); color: var(--deep); }
+.play-button kbd { color: var(--deep); background: transparent; border-color: color-mix(in srgb, var(--deep) 45%, transparent); }
+.secondary-button, .load-button { background: var(--deep); border: 1px solid var(--line); border-radius: 999px; }
+.secondary-button:hover:not(:disabled), .load-button:hover:not(:disabled) { background: var(--hover); color: var(--silk); border-color: var(--silk); }
+.speed-control select { background: var(--deep); border: 1px solid var(--line); border-radius: 999px; }
+.tape-cell { background: var(--deep); border-color: var(--line); }
+.tape-cell span, .diagram-node-output, .flying-glyph { font-family: var(--display); font-weight: 850; }
+.tape-cell.current { background: var(--selected); border-color: var(--silk); }
+.output-tape .tape-cell.printed, .initial-cell { background: var(--solid); color: var(--silk); }
+.preset-row:hover { background: var(--hover); color: var(--silk); }
+.kind-badge { border-radius: 999px; }
+.learn-diagram { stroke: var(--silk); }
+.learn-diagram circle { fill: var(--deep); }
+.learn-diagram text { font-family: var(--display); fill: var(--silk); }
+.learn-diagram .signal-label { fill: var(--silk); }
+.drawer { background: var(--deep); border-left-color: var(--line); box-shadow: -12px 0 50px rgb(50% 50% 50% / .09); }
+/* A modal backdrop paints above the body wave. Midpoint gray is its own
+   inverse, so the composed backdrop remains continuous at palette commit. */
+.drawer::backdrop { background: rgb(50% 50% 50% / .4); }
+tbody tr:hover { background: var(--hover); }
+tr.selected { background: var(--selected); }
+tr.selected td { color: var(--silk); }
+.setting-row strong, .editor-label { font-size: 13px; }
+.setting-row small, .drawer-hint, .graph-small-note { font-size: 12px; }
+.setting-row input[type=checkbox] { border-color: var(--line); background: var(--solid); }
+.setting-row input[type=checkbox]::after { background: var(--muted); }
+.setting-row input[type=checkbox]:checked { background: var(--brand); border-color: var(--brand); }
+.setting-row input[type=checkbox]:checked::after { background: var(--deep); }
+.error-message, #editor-errors:not(:empty) { background: var(--solid); border-color: var(--line); color: var(--fault); }
+#toast { background: var(--deep); border-color: var(--silk); box-shadow: 0 12px 30px var(--shadow); }
+.diagram-node { background: var(--deep); color: var(--silk); border-color: var(--silk); font-family: var(--display); font-weight: 800; }
+.diagram-node.is-forming { border-color: transparent; }
+.diagram-node.is-active { background: var(--selected); border-color: var(--silk); }
+.diagram-node::before { box-shadow: 0 0 0 4px var(--halo), inset 0 0 0 1px var(--silk); }
+.diagram-node::after { box-shadow: 0 9px 14px var(--shadow); }
+.diagram-node.is-moore .diagram-node-name { border-bottom-color: var(--line); }
+.diagram-node-output, .edge-output { color: var(--silk); }
+.diagram-edge-label { background: var(--deep); border-color: var(--line); color: var(--silk); font-family: var(--display); font-weight: 650; }
+.diagram-edge-label.is-traversed { background: var(--selected); border-color: var(--silk); }
+.diagram-start-label { font-family: var(--display); }
+.graph-editor { --graph-panel: var(--deep); --graph-ink-color: var(--silk); background: var(--deep); border: 1px solid var(--line); border-radius: var(--r-24); overflow: hidden; }
+.graph-button { border-radius: 999px; background: var(--deep); font-size: 12px; }
+.graph-button:hover:not(:disabled), .graph-button[aria-pressed=true] { background: var(--selected); color: var(--silk); border-color: var(--silk); }
+.graph-view-tools button { background: var(--deep); border-radius: 999px; }
+.graph-inspector { background: var(--solid); }
+.graph-inspector h2, .graph-empty strong { font-family: var(--display); font-weight: 800; letter-spacing: -.035em; }
+.graph-node { background: var(--deep); border-color: var(--silk); font-family: var(--display); font-weight: 750; }
+.graph-node:hover, .graph-node.is-selected { background: var(--selected); border-color: var(--silk); box-shadow: 0 0 0 4px var(--halo); }
+.graph-node.is-connect-source { border-color: var(--silk); box-shadow: 0 0 0 5px var(--halo); }
+.graph-node.is-connect-target { border-color: var(--silk); background: var(--selected); box-shadow: 0 0 0 7px var(--halo); }
+.graph-edge-label { border-radius: 12px; font-size: 12px; }
+.graph-errors { background: var(--solid); border-color: var(--line); }
+.graph-danger:hover:not(:disabled) { color: var(--fault); border-color: var(--fault); background: var(--selected); }
+.graph-eyebrow { color: var(--muted); }
+.graph-form label, .graph-fill label, .graph-kind-label, .graph-canvas-footer, .graph-canvas-heading { font-size: 12px; }
+.graph-form input, .graph-form select, .graph-fill input { background: var(--deep); }
+/* UI reveals belong to UIMotion; diagram geometry keeps its own motion. */
+.view, .drawer { animation: none; }
+button, select, a { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, opacity 180ms ease; }
+.text-button { position: relative; }
+.text-button::after { content: ''; position: absolute; left: 0; right: 0; bottom: 4px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform 220ms cubic-bezier(.16, 1, .3, 1); }
+.text-button:hover::after, .text-button:focus-visible::after { transform: scaleX(1); transform-origin: left; }
+.preset-row > svg { transition: transform 220ms cubic-bezier(.22, 1, .36, 1); }
+.preset-row:hover > svg { transform: translateX(4px); }
+:root.high-contrast { --muted: var(--silk); --line: var(--silk); }
+.high-contrast .glass, .high-contrast .sheet, .high-contrast .drawer { background: var(--deep); border-color: var(--silk); }
+.high-contrast .diagram-node, .high-contrast .diagram-edge-label { background: var(--deep); border-color: var(--silk); }
+.reduced-motion .preset-row:hover > svg { transform: none; }
+@media (prefers-reduced-motion: reduce) { .preset-row:hover > svg { transform: none; } }
+@media (prefers-contrast: more) { .diagram-node, .diagram-edge-label { background: var(--deep); border-color: var(--silk); } }
+@media (max-width: 719px) {
+  .workspace-header { height: 104px; }
+  .wordmark { font-size: 32px; }
+  .machine-heading h1 { font-size: 25px; }
+  .view-heading h1 { font-size: 30px; }
+  .diagram-edit-actions { gap: 12px; }
+  .rail { background: var(--deep); }
+  .diagram-counts { font-size: 11px; }
+  .app-footer { font-size: 11px; }
+}
+@media (max-width: 570px) {
+  .editor-intro { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 20px; }
+  .editor-intro p { text-align: left; font-size: 12px; }
+  .graph-button { font-size: 11px; }
+  .graph-canvas-heading { font-size: 11px; }
+  .graph-kind-label { font-size: 11px; }
+}
