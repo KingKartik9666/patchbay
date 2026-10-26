@@ -1,20 +1,48 @@
 .diagram {
   position: relative;
   min-width: 0;
-  min-height: 240px;
+  min-height: 220px;
   overflow: hidden;
   contain: layout paint style;
 }
-
 .diagram-surface,
 .diagram-ink,
 .diagram-nodes,
-.diagram-labels { position: absolute; inset: 0; }
-.diagram-surface { pointer-events: none; }
-.diagram-ink { position: sticky; inset: 0 auto auto 0; display: block; pointer-events: none; }
-.diagram-nodes { z-index: 2; }
-.diagram-labels { z-index: 3; }
+.diagram-labels {
+  position: absolute;
+  inset: 0;
+}
+.diagram-surface {
+  pointer-events: none;
+}
+.diagram-ink {
+  position: sticky;
+  inset: 0 auto auto 0;
+  display: block;
+  pointer-events: none;
+}
+.diagram[data-overflow='true'] {
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--strong-line) var(--deep);
+}
+.diagram-nodes {
+  z-index: 2;
+}
+.diagram-labels {
+  z-index: 3;
+}
+.diagram-glyph {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
 
+/* Transforms come from the layout model; visual states never move a node. */
 .diagram-node {
   position: absolute;
   inset: 0 auto auto 0;
@@ -25,51 +53,80 @@
   width: var(--node-size);
   height: var(--node-size);
   padding: 0;
-  border: 1.65px solid var(--copper, #e0a458);
+  border: 1.65px solid var(--brand);
   border-radius: 50%;
-  background: #153e33;
-  color: var(--silk, #eaf2ec);
+  background: var(--deep);
+  color: var(--silk);
   opacity: 0;
-  font-family: 'Archivo Variable', Archivo, sans-serif;
-  font-weight: 550;
+  font-family: var(--display);
+  font-weight: 800;
   font-size: 17px;
   cursor: pointer;
   pointer-events: auto;
-  transition: transform 400ms cubic-bezier(.2,.8,.3,1), opacity 160ms ease, translate 160ms ease;
+  transition:
+    transform 480ms var(--ease),
+    opacity 320ms var(--ease),
+    background-color 700ms var(--ease),
+    border-color 700ms var(--ease),
+    color 700ms var(--ease);
 }
-
 .diagram-node::before {
   content: '';
   position: absolute;
-  inset: -1px;
+  inset: -6px;
+  border: 2px solid var(--accent-line);
   border-radius: 50%;
-  box-shadow: 0 0 12px #ff5bad59, inset 0 0 10px #ff5bad1c;
   opacity: 0;
-  transition: opacity 180ms ease;
+  transition:
+    opacity 480ms var(--ease),
+    border-color 700ms var(--ease);
   pointer-events: none;
 }
-
-.diagram-node::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  box-shadow: 0 9px 14px #00000070;
-  opacity: 0;
-  transition: opacity 160ms ease;
-  pointer-events: none;
+.diagram-node.is-formed {
+  opacity: 1;
 }
-
-.diagram-node.is-formed { opacity: 1; }
-.diagram-node.is-forming { border-color: transparent; }
-.diagram-node.is-active { border-color: var(--mint, #7ce3c3); background: #1b493c; }
-.diagram-node.is-active::before { opacity: 0.65; }
-.diagram-node:hover { translate: 0 -3px; }
-.diagram-node:hover::after { opacity: 1; }
-.diagram-node:focus-visible { outline: 2px solid var(--silk, #eaf2ec); outline-offset: 5px; }
-.diagram-node.is-unreachable { opacity: 0.4; }
-.diagram-node.is-fault { border-color: var(--fault, #ff6b6b); }
-.diagram-node.is-reading::before, .diagram-node.is-arriving::before { opacity: 1; }
+.diagram-node.is-forming {
+  border-color: transparent;
+  animation: diagram-form 420ms var(--ease);
+}
+@keyframes diagram-form {
+  from {
+    scale: 0.92;
+    opacity: 0;
+  }
+  to {
+    scale: 1;
+  }
+}
+.diagram-node.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.diagram-node.is-active::before {
+  opacity: 1;
+}
+.diagram-node:hover {
+  border-color: var(--brand);
+  background: var(--selected);
+  color: var(--silk);
+}
+.diagram-node:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 6px;
+}
+.diagram-node.is-unreachable.is-formed {
+  opacity: 0.45;
+}
+.diagram-node.is-fault {
+  border-color: var(--fault);
+}
+.diagram-node.is-fault::before {
+  border-color: var(--fault);
+}
+.diagram-node.is-reading::before,
+.diagram-node.is-arriving::before {
+  opacity: 1;
+}
 
 .diagram-node-name {
   position: relative;
@@ -79,19 +136,17 @@
   white-space: nowrap;
   line-height: 1.2;
 }
-
 .diagram-node.is-moore .diagram-node-name {
   min-width: 29px;
   padding: 0 4px 3px;
-  border-bottom: 1px solid #f5b90a66;
+  border-bottom: 1px solid var(--line);
   font-size: 13px;
   line-height: 1.15;
 }
-
 .diagram-node-output {
   padding-top: 3px;
-  color: var(--mint, #7ce3c3);
-  font-family: 'Doto Variable', Doto, monospace;
+  color: var(--accent);
+  font-family: var(--display);
   font-size: 18px;
   font-weight: 850;
   line-height: 1;
@@ -105,50 +160,109 @@
   gap: 2px;
   min-width: 33px;
   padding: 5px 8px;
-  border: 1px solid #f5b90a29;
-  border-radius: 10px;
-  background: #123d30;
-  color: var(--silk, #eaf2ec);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--deep);
+  color: var(--silk);
   opacity: 0;
   translate: 0 4px;
-  font-family: 'Archivo Variable', Archivo, sans-serif;
+  font-family: var(--display);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
   text-align: center;
-  transition: opacity 160ms ease, translate 160ms ease, transform 400ms cubic-bezier(.2,.8,.3,1);
+  transition:
+    opacity 320ms var(--ease),
+    translate 480ms var(--ease),
+    transform 480ms var(--ease),
+    background-color 700ms var(--ease),
+    border-color 700ms var(--ease),
+    color 700ms var(--ease);
   pointer-events: none;
 }
-
-.diagram-edge-label.is-visible { opacity: 1; translate: 0 0; }
-.diagram-edge-label.is-unreachable.is-visible { opacity: 0.4; }
-.diagram-edge-symbol { display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
-.edge-slash { color: var(--muted); font-size: 11px; }
-.edge-output { color: var(--mint, #7ce3c3); }
-.diagram-edge-more { color: var(--muted, #afc3b8); font-size: 10px; }
-.diagram-edge-label.is-traversed { background: #301b27; border-color: #ff5bad77; }
-
+.diagram-edge-label.is-visible {
+  opacity: 1;
+  translate: 0 0;
+}
+.diagram-edge-label.is-unreachable.is-visible {
+  opacity: 0.45;
+}
+.diagram-edge-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.edge-slash {
+  color: var(--muted);
+  font-size: 11px;
+}
+.edge-output {
+  color: var(--accent);
+}
+.diagram-edge-more {
+  color: var(--muted);
+  font-size: 10px;
+}
+.diagram-edge-label.is-traversed {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
 .diagram-start-label {
   position: absolute;
   inset: 0 auto auto 0;
   color: var(--muted);
-  font: 400 11px/1 'Archivo Variable', Archivo, sans-serif;
+  font: 700 11px/1 var(--display);
   opacity: 0;
-  transition: opacity 160ms ease;
+  transition:
+    opacity 320ms var(--ease),
+    color 700ms var(--ease);
 }
-.diagram-start-label.is-visible { opacity: 1; }
+.diagram-start-label.is-visible {
+  opacity: 1;
+}
 
 .diagram-reduced .diagram-node,
-.diagram-reduced .diagram-edge-label { transition: opacity 150ms ease; }
-.diagram-reduced .diagram-node:hover { translate: 0 0; }
-
-@media (prefers-reduced-motion: reduce) {
-  .diagram-node, .diagram-edge-label { transition: opacity 150ms ease; }
-  .diagram-node:hover { translate: 0 0; }
+.diagram-reduced .diagram-edge-label {
+  animation: none;
+  transition: none;
 }
-
+.diagram-reduced .diagram-edge-label {
+  translate: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .diagram-node,
+  .diagram-edge-label,
+  .diagram-node::before,
+  .diagram-start-label {
+    animation: none;
+    transition: none;
+  }
+  .diagram-edge-label {
+    translate: none;
+  }
+}
 @media (prefers-contrast: more) {
-  .diagram-node { border-width: 2px; background: #072219; }
-  .diagram-edge-label { border-color: #e0a458; background: #072219; }
+  .diagram-node {
+    border-width: 2px;
+    background: var(--deep);
+  }
+  .diagram-edge-label {
+    border-color: var(--silk);
+    background: var(--deep);
+  }
+}
+@media (forced-colors: active) {
+  .diagram-node,
+  .diagram-edge-label {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+  .diagram-node.is-active {
+    outline: 2px solid Highlight;
+    outline-offset: 4px;
+  }
 }

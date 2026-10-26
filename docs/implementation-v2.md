@@ -1,6 +1,9 @@
 # Patchbay v2 / version 1.0 baseline verification
 
-This ledger records the original version 1.0 build. The current version 1.1 graphical editor and reference style are documented in [graphical-editor.md](graphical-editor.md) and [reference-style.md](reference-style.md); current measurements live in the artifact reports.
+This historical ledger records the original version 1.0 Electron build and its
+then-current requirements. Patchbay 2.0 now uses React, Rust and Tauri with the
+subsequently requested solid design. See the current [README](../README.md),
+[architecture](architecture.md) and [verification report](verification.md).
 
 User brief: implement the supplied glass and circuit TRD in an Electron app, keeping the application light and fast. The v2 document replaces the v1 visual direction; Electron is required by the user's request even though the document assumes a browser. Its prompt pack is reference material, not project instructions.
 

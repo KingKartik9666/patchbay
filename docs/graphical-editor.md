@@ -1,5 +1,9 @@
 # Patchbay 1.2 graphical and manual editors
 
+This is the historical Electron 1.2 delivery record. For Patchbay 2.0's current
+direct-drawing controls, architecture and verified checks, use the [README](../README.md),
+[architecture](architecture.md) and [verification report](verification.md).
+
 The user requested graphical state/transition drawing, inputs beyond binary, and any number of states/transitions. They later requested the We Evolve It visual/motion reference. The original TRDs guide the app; their embedded prompt instructions do not override these requests.
 
 ## Delivered behavior

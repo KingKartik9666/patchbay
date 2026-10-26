@@ -21,20 +21,33 @@ interface ActiveMotion {
 }
 
 const EASING = 'cubic-bezier(.16,1,.3,1)';
-const DURATION: Record<MotionKind, number> = { page: 720, drawer: 650, content: 400 };
-const POSITIONED = '.graph-node,.graph-edge-label,.diagram-node';
+const DURATION: Record<MotionKind, number> = { page: 800, drawer: 720, content: 600 };
+const POSITIONED = '.graph-node,.graph-connect-handle,.graph-edge-label,.diagram-node';
 const STAGGER_TARGETS = [
-  'h1', 'h2', 'h3', '.preset-row', '.setting-row', '.tape-row',
-  '.learn-comparison > article', '.graph-inspector-section',
-  '.graph-canvas-heading', '.graph-toolbar', 'tbody > tr', '[data-motion-item]',
+  'h1',
+  'h2',
+  'h3',
+  '.preset-row',
+  '.setting-row',
+  '.tape-row',
+  '.learn-comparison > article',
+  '.graph-inspector-section',
+  '.graph-canvas-heading',
+  '.graph-toolbar',
+  'tbody > tr',
+  '[data-motion-item]',
 ].join(',');
 
 function vector(direction: Direction, distance: number): [number, number] {
   switch (direction) {
-    case 'left': return [-distance, 0];
-    case 'right': return [distance, 0];
-    case 'top': return [0, -distance];
-    case 'bottom': return [0, distance];
+    case 'left':
+      return [-distance, 0];
+    case 'right':
+      return [distance, 0];
+    case 'top':
+      return [0, -distance];
+    case 'bottom':
+      return [0, distance];
   }
 }
 
@@ -65,23 +78,37 @@ export class UIMotion {
     const x = Math.max(0, Math.min(width, bounds.left + bounds.width / 2));
     const y = Math.max(0, Math.min(height, bounds.top + bounds.height / 2));
     const rail = trigger.closest('#rail,.rail,[data-motion-navigation]');
-    const explicit = trigger.closest('[data-motion-direction]')?.getAttribute('data-motion-direction');
+    const explicit = trigger
+      .closest('[data-motion-direction]')
+      ?.getAttribute('data-motion-direction');
     let direction: Direction;
 
-    if (explicit === 'left' || explicit === 'right' || explicit === 'top' || explicit === 'bottom') {
+    if (
+      explicit === 'left' ||
+      explicit === 'right' ||
+      explicit === 'top' ||
+      explicit === 'bottom'
+    ) {
       direction = explicit;
     } else if (rail) {
       const railBounds = rail.getBoundingClientRect();
       // The same rail becomes a bottom navigation bar on narrow windows.
-      direction = railBounds.width > railBounds.height
-        ? (railBounds.top + railBounds.height / 2 > height / 2 ? 'bottom' : 'top')
-        : (railBounds.left + railBounds.width / 2 < width / 2 ? 'left' : 'right');
+      direction =
+        railBounds.width > railBounds.height
+          ? railBounds.top + railBounds.height / 2 > height / 2
+            ? 'bottom'
+            : 'top'
+          : railBounds.left + railBounds.width / 2 < width / 2
+            ? 'left'
+            : 'right';
     } else {
       const sides: Array<[Direction, number]> = [
-        ['left', x / width], ['right', (width - x) / width],
-        ['top', y / height], ['bottom', (height - y) / height],
+        ['left', x / width],
+        ['right', (width - x) / width],
+        ['top', y / height],
+        ['bottom', (height - y) / height],
       ];
-      direction = sides.reduce((nearest, side) => side[1] < nearest[1] ? side : nearest)[0];
+      direction = sides.reduce((nearest, side) => (side[1] < nearest[1] ? side : nearest))[0];
     }
 
     this.lastOrigin = { x, y, direction };
@@ -96,7 +123,11 @@ export class UIMotion {
     const blur = this.preferences.blur();
     const frames: Keyframe[] = [
       { transform: translated(style.transform, origin.direction, 40), opacity: 0, offset: 0 },
-      { transform: translated(style.transform, origin.direction, 8), opacity: style.opacity, offset: .38 },
+      {
+        transform: translated(style.transform, origin.direction, 8),
+        opacity: style.opacity,
+        offset: 0.38,
+      },
       { transform: style.transform, opacity: style.opacity, offset: 1 },
     ];
     if (blur) {
@@ -104,28 +135,50 @@ export class UIMotion {
       frames[1].filter = this.blurred(style.filter, 1);
       frames[2].filter = style.filter;
     }
-    void this.animate(element, element, frames, {
-      duration: DURATION[kind], easing: EASING, fill: 'both',
-    }, blur ? 'transform, opacity, filter' : 'transform, opacity');
+    void this.animate(
+      element,
+      element,
+      frames,
+      {
+        duration: DURATION[kind],
+        easing: EASING,
+        fill: 'both',
+      },
+      blur ? 'transform, opacity, filter' : 'transform, opacity',
+    );
 
     this.staggerTargets(element).forEach((target, index) => {
       const childStyle = getComputedStyle(target);
       // The container supplies blur; avoiding another filter on every row
       // keeps the transient blur within 6px and limits compositor layers.
-      void this.animate(target, element, [
-        { transform: translated(childStyle.transform, origin.direction, 16), opacity: 0 },
-        { transform: childStyle.transform, opacity: childStyle.opacity },
-      ], {
-        duration: 400, delay: index * 35, easing: EASING, fill: 'both',
-      }, 'transform, opacity');
+      void this.animate(
+        target,
+        element,
+        [
+          { transform: translated(childStyle.transform, origin.direction, 16), opacity: 0 },
+          { transform: childStyle.transform, opacity: childStyle.opacity },
+        ],
+        {
+          duration: 400,
+          delay: index * 35,
+          easing: EASING,
+          fill: 'both',
+        },
+        'transform, opacity',
+      );
     });
   }
 
-  exit(element: HTMLElement, origin = this.origin(), _kind: MotionKind = 'page'): Promise<void> {
+  exit(element: HTMLElement, origin = this.origin(), kind: MotionKind = 'page'): Promise<void> {
+    element.dataset.motionKind = kind;
     // Snapshot the currently displayed pose before cancelling an entrance,
     // so a quick second interaction can depart from the visible position.
     const current = getComputedStyle(element);
-    const start = { transform: current.transform, opacity: current.opacity, filter: current.filter };
+    const start = {
+      transform: current.transform,
+      opacity: current.opacity,
+      filter: current.filter,
+    };
     this.cancel(element);
     if (this.disposed || this.preferences.reduced()) return Promise.resolve();
 
@@ -139,9 +192,17 @@ export class UIMotion {
       frames[0].filter = start.filter;
       frames[1].filter = this.blurred(style.filter, 4);
     }
-    return this.animate(element, element, frames, {
-      duration: 180, easing: 'cubic-bezier(.4,0,1,1)', fill: 'both',
-    }, blur ? 'transform, opacity, filter' : 'transform, opacity');
+    return this.animate(
+      element,
+      element,
+      frames,
+      {
+        duration: 260,
+        easing: 'cubic-bezier(.4,0,1,1)',
+        fill: 'both',
+      },
+      blur ? 'transform, opacity, filter' : 'transform, opacity',
+    );
   }
 
   feedback(button: HTMLElement): void {
@@ -152,7 +213,10 @@ export class UIMotion {
     const style = getComputedStyle(button);
     const frames: Keyframe[] = [
       { backgroundColor: style.backgroundColor, offset: 0 },
-      { backgroundColor: `color-mix(in srgb, ${style.backgroundColor} 88%, ${style.color} 12%)`, offset: .35 },
+      {
+        backgroundColor: `color-mix(in srgb, ${style.backgroundColor} 88%, ${style.color} 12%)`,
+        offset: 0.35,
+      },
       { backgroundColor: style.backgroundColor, offset: 1 },
     ];
     const positioned = button.matches(POSITIONED);
@@ -164,14 +228,28 @@ export class UIMotion {
     }
     // Graph node/label transforms position the drawing. Their feedback uses
     // only colour; no transform or individual scale effect is attached.
-    void this.animate(button, button, frames, {
-      duration: 190, easing: EASING, fill: 'both',
-    }, positioned ? 'background-color' : 'background-color, scale');
+    void this.animate(
+      button,
+      button,
+      frames,
+      {
+        duration: 190,
+        easing: EASING,
+        fill: 'both',
+      },
+      positioned ? 'background-color' : 'background-color, scale',
+    );
   }
 
   cancel(element?: HTMLElement): void {
     for (const motion of Array.from(this.active)) {
-      if (element && motion.scope !== element && motion.target !== element && !element.contains(motion.target)) continue;
+      if (
+        element &&
+        motion.scope !== element &&
+        motion.target !== element &&
+        !element.contains(motion.target)
+      )
+        continue;
       motion.settle();
     }
   }
@@ -193,8 +271,13 @@ export class UIMotion {
   private staggerTargets(element: HTMLElement): HTMLElement[] {
     const selected: HTMLElement[] = [];
     for (const target of element.querySelectorAll<HTMLElement>(STAGGER_TARGETS)) {
-      if (target.closest('[hidden]') || !target.getClientRects().length || target.matches(POSITIONED)) continue;
-      if (selected.some(parent => parent.contains(target))) continue;
+      if (
+        target.closest('[hidden]') ||
+        !target.getClientRects().length ||
+        target.matches(POSITIONED)
+      )
+        continue;
+      if (selected.some((parent) => parent.contains(target))) continue;
       selected.push(target);
       if (selected.length === 8) break;
     }
@@ -219,10 +302,12 @@ export class UIMotion {
     }
     target.style.setProperty('will-change', willChange);
 
-    return new Promise<void>(resolve => {
+    return new Promise<void>((resolve) => {
       let settled = false;
       const motion: ActiveMotion = {
-        target, scope, animation,
+        target,
+        scope,
+        animation,
         settle: () => {
           if (settled) return;
           settled = true;

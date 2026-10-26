@@ -1,5 +1,10 @@
 # Patchbay 1.2 reference and motion notes
 
+This is the historical black/white and watery-wave design record. The user later
+requested solid blue/red/white and dark grey/orange/lime palettes, replacing the
+glass, theme wave and 3D scene. Current behavior is documented in the
+[README](../README.md) and [verification report](verification.md).
+
 The final renderer follows the user's requested black/white palette, rounded readable type, clear borders, directional navigation motion, and a grey watery transition only when switching theme. It starts in light mode unless a saved theme preference selects dark mode. The website supplied motion and control ideas; the user's later instructions take precedence over its colored palette, monospaced headings, globe, and ambient particles.
 
 ## Reference capture and provenance

@@ -1,42 +1,86 @@
-import type { MachineDef } from '../engine/types';
+import type { MachineDef } from '../domain/contracts';
 
 export const EDGE_SAMPLES = 96;
-export interface DPoint { x: number; y: number }
+export interface DPoint {
+  x: number;
+  y: number;
+}
 export interface DNode {
-  id: string; x: number; y: number; r: number; order: number; depth: number;
-  reachable: boolean; out?: string;
+  id: string;
+  x: number;
+  y: number;
+  r: number;
+  order: number;
+  depth: number;
+  reachable: boolean;
+  out?: string;
 }
 export interface DEdge {
-  id: string; from: string; to: string; kind: 'forward' | 'back' | 'loop';
-  labels: string[]; symbols: string[]; pts: Float32Array; len: Float32Array;
-  length: number; order: number; labelX: number; labelY: number; reachable: boolean;
+  id: string;
+  from: string;
+  to: string;
+  kind: 'forward' | 'back' | 'loop';
+  labels: string[];
+  symbols: string[];
+  pts: Float32Array;
+  len: Float32Array;
+  length: number;
+  order: number;
+  labelX: number;
+  labelY: number;
+  reachable: boolean;
   bounds: { left: number; top: number; right: number; bottom: number };
 }
-export interface DiagramData { nodes: DNode[]; edges: DEdge[]; width: number; height: number }
+export interface DiagramData {
+  nodes: DNode[];
+  edges: DEdge[];
+  width: number;
+  height: number;
+}
 
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 const pairId = (from: string, to: string) => JSON.stringify([from, to]);
-const finiteSize = (value: number, fallback: number) => Number.isFinite(value) && value > 0 ? value : fallback;
+const finiteSize = (value: number, fallback: number) =>
+  Number.isFinite(value) && value > 0 ? value : fallback;
 
 /** Samples a cubic once. Animation reads its table and never evaluates a layout. */
-export function sampleCubic(p0: DPoint, p1: DPoint, p2: DPoint, p3: DPoint): { pts: Float32Array; len: Float32Array; length: number } {
+export function sampleCubic(
+  p0: DPoint,
+  p1: DPoint,
+  p2: DPoint,
+  p3: DPoint,
+): { pts: Float32Array; len: Float32Array; length: number } {
   const pts = new Float32Array(EDGE_SAMPLES * 2);
   const len = new Float32Array(EDGE_SAMPLES);
   for (let i = 0; i < EDGE_SAMPLES; i++) {
-    const t = i / (EDGE_SAMPLES - 1), a = 1 - t;
+    const t = i / (EDGE_SAMPLES - 1),
+      a = 1 - t;
     pts[i * 2] = a * a * a * p0.x + 3 * a * a * t * p1.x + 3 * a * t * t * p2.x + t * t * t * p3.x;
-    pts[i * 2 + 1] = a * a * a * p0.y + 3 * a * a * t * p1.y + 3 * a * t * t * p2.y + t * t * t * p3.y;
-    if (i) len[i] = len[i - 1] + Math.hypot(pts[i * 2] - pts[(i - 1) * 2], pts[i * 2 + 1] - pts[(i - 1) * 2 + 1]);
+    pts[i * 2 + 1] =
+      a * a * a * p0.y + 3 * a * a * t * p1.y + 3 * a * t * t * p2.y + t * t * t * p3.y;
+    if (i)
+      len[i] =
+        len[i - 1] +
+        Math.hypot(pts[i * 2] - pts[(i - 1) * 2], pts[i * 2 + 1] - pts[(i - 1) * 2 + 1]);
   }
   return { pts, len, length: len[EDGE_SAMPLES - 1] };
 }
 
 /** Arc-length lookup, with an optional output object for allocation-free frames. */
-export function pointAt(edge: Pick<DEdge, 'pts' | 'len'>, u: number, out: DPoint = { x: 0, y: 0 }): DPoint {
+export function pointAt(
+  edge: Pick<DEdge, 'pts' | 'len'>,
+  u: number,
+  out: DPoint = { x: 0, y: 0 },
+): DPoint {
   const n = edge.len.length;
-  if (!n) { out.x = 0; out.y = 0; return out; }
+  if (!n) {
+    out.x = 0;
+    out.y = 0;
+    return out;
+  }
   const target = clamp(Number.isFinite(u) ? u : 0, 0, 1) * edge.len[n - 1];
-  let low = 0, high = n - 1;
+  let low = 0,
+    high = n - 1;
   while (low < high) {
     const mid = (low + high) >>> 1;
     if (edge.len[mid] < target) low = mid + 1;
@@ -52,13 +96,17 @@ export function pointAt(edge: Pick<DEdge, 'pts' | 'len'>, u: number, out: DPoint
 
 /** Pure deterministic BFS layout; state and input names are data, never selectors. */
 export function buildDiagram(machine: MachineDef, box: { w: number; h: number }): DiagramData {
-  const viewportWidth = finiteSize(box.w, 800), viewportHeight = finiteSize(box.h, 440);
+  const viewportWidth = finiteSize(box.w, 800),
+    viewportHeight = finiteSize(box.h, 440);
   const r = clamp(Math.min(viewportWidth, viewportHeight) * 0.05, 26, 40);
   const stateSet = new Set(machine.states);
   const depths = new Map<string, number>();
   const order: string[] = [];
   const start = stateSet.has(machine.start) ? machine.start : machine.states[0];
-  if (start !== undefined) { depths.set(start, 0); order.push(start); }
+  if (start !== undefined) {
+    depths.set(start, 0);
+    order.push(start);
+  }
   for (let index = 0; index < order.length; index++) {
     const source = order[index];
     for (const symbol of machine.alphabet) {
@@ -71,7 +119,11 @@ export function buildDiagram(machine: MachineDef, box: { w: number; h: number })
   }
   const reachable = new Set(order);
   const reachableMax = Math.max(0, ...depths.values());
-  for (const state of machine.states) if (!depths.has(state)) { depths.set(state, reachableMax + 1); order.push(state); }
+  for (const state of machine.states)
+    if (!depths.has(state)) {
+      depths.set(state, reachableMax + 1);
+      order.push(state);
+    }
   const maxDepth = Math.max(0, ...depths.values());
   const rowCounts = new Map<number, number>();
   for (const depth of depths.values()) rowCounts.set(depth, (rowCounts.get(depth) ?? 0) + 1);
@@ -87,13 +139,18 @@ export function buildDiagram(machine: MachineDef, box: { w: number; h: number })
   const colGap = maxDepth ? Math.min(330, availableWidth / maxDepth) : 0;
   const padX = (w - maxDepth * colGap) / 2;
   const nodes: DNode[] = order.map((id, index) => ({
-    id, x: padX + depths.get(id)! * colGap, y: h / 2 + 16, r, order: index,
-    depth: depths.get(id)!, reachable: reachable.has(id),
+    id,
+    x: padX + depths.get(id)! * colGap,
+    y: h / 2 + 16,
+    r,
+    order: index,
+    depth: depths.get(id)!,
+    reachable: reachable.has(id),
     ...(machine.outputs.kind === 'moore' ? { out: machine.outputs.lambda[id] ?? '' } : {}),
   }));
-  const byId = new Map(nodes.map(node => [node.id, node]));
+  const byId = new Map(nodes.map((node) => [node.id, node]));
   const columns: DNode[][] = Array.from({ length: maxDepth + 1 }, () => []);
-  nodes.forEach(node => columns[node.depth].push(node));
+  nodes.forEach((node) => columns[node.depth].push(node));
   const predecessors = new Map<string, DNode[]>();
   for (const node of nodes) {
     for (const symbol of machine.alphabet) {
@@ -105,13 +162,20 @@ export function buildDiagram(machine: MachineDef, box: { w: number; h: number })
     }
   }
   const spread = (column: DNode[]) => {
-    const rowGap = Math.max(minimumGap, Math.min(160, Math.max(1, h - padY * 2 - 32) / Math.max(1, column.length - 1)));
-    column.forEach((node, index) => { node.y = h / 2 + 16 + (index - (column.length - 1) / 2) * rowGap; });
+    const rowGap = Math.max(
+      minimumGap,
+      Math.min(160, Math.max(1, h - padY * 2 - 32) / Math.max(1, column.length - 1)),
+    );
+    column.forEach((node, index) => {
+      node.y = h / 2 + 16 + (index - (column.length - 1) / 2) * rowGap;
+    });
   };
   columns.forEach(spread);
   const barycentre = (node: DNode) => {
     const parents = predecessors.get(node.id);
-    return parents?.length ? parents.reduce((sum, parent) => sum + parent.y, 0) / parents.length : node.y;
+    return parents?.length
+      ? parents.reduce((sum, parent) => sum + parent.y, 0) / parents.length
+      : node.y;
   };
   for (let pass = 0; pass < 2; pass++) {
     for (const column of columns) {
@@ -120,7 +184,10 @@ export function buildDiagram(machine: MachineDef, box: { w: number; h: number })
     }
   }
 
-  const merged = new Map<string, { from: string; to: string; labels: string[]; symbols: string[] }>();
+  const merged = new Map<
+    string,
+    { from: string; to: string; labels: string[]; symbols: string[] }
+  >();
   for (const source of nodes) {
     for (const symbol of machine.alphabet) {
       const target = machine.delta[source.id]?.[symbol];
@@ -128,14 +195,19 @@ export function buildDiagram(machine: MachineDef, box: { w: number; h: number })
       const id = pairId(source.id, target);
       const edge = merged.get(id) ?? { from: source.id, to: target, labels: [], symbols: [] };
       edge.symbols.push(symbol);
-      edge.labels.push(machine.outputs.kind === 'mealy' ? `${symbol}/${machine.outputs.lambda[source.id]?.[symbol] ?? ''}` : symbol);
+      edge.labels.push(
+        machine.outputs.kind === 'mealy'
+          ? `${symbol}/${machine.outputs.lambda[source.id]?.[symbol] ?? ''}`
+          : symbol,
+      );
       merged.set(id, edge);
     }
   }
 
   const edges: DEdge[] = [];
   for (const [id, edge] of merged) {
-    const a = byId.get(edge.from)!, b = byId.get(edge.to)!;
+    const a = byId.get(edge.from)!,
+      b = byId.get(edge.to)!;
     const kind = a.id === b.id ? 'loop' : b.depth > a.depth ? 'forward' : 'back';
     const reciprocal = a.id !== b.id && merged.has(pairId(b.id, a.id));
     let p0: DPoint, p1: DPoint, p2: DPoint, p3: DPoint;
@@ -164,12 +236,24 @@ export function buildDiagram(machine: MachineDef, box: { w: number; h: number })
     const midpoint = pointAt(samples, 0.5);
     const bounds = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
     for (let i = 0; i < EDGE_SAMPLES; i++) {
-      const x = samples.pts[i * 2], y = samples.pts[i * 2 + 1];
-      bounds.left = Math.min(bounds.left, x); bounds.right = Math.max(bounds.right, x);
-      bounds.top = Math.min(bounds.top, y); bounds.bottom = Math.max(bounds.bottom, y);
+      const x = samples.pts[i * 2],
+        y = samples.pts[i * 2 + 1];
+      bounds.left = Math.min(bounds.left, x);
+      bounds.right = Math.max(bounds.right, x);
+      bounds.top = Math.min(bounds.top, y);
+      bounds.bottom = Math.max(bounds.bottom, y);
     }
-    edges.push({ id, ...edge, kind, ...samples, order: edges.length,
-      labelX: midpoint.x, labelY: midpoint.y + (kind === 'loop' ? -7 : 0), reachable: a.reachable, bounds });
+    edges.push({
+      id,
+      ...edge,
+      kind,
+      ...samples,
+      order: edges.length,
+      labelX: midpoint.x,
+      labelY: midpoint.y + (kind === 'loop' ? -7 : 0),
+      reachable: a.reachable,
+      bounds,
+    });
   }
   return { nodes, edges, width: w, height: h };
 }

@@ -1,24 +1,34 @@
-import { spawn } from 'node:child_process';
+import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
-import electron from 'electron';
+import { join } from 'node:path';
+import { cargo, run } from './process.mjs';
 
-const root = fileURLToPath(new URL('../', import.meta.url));
-try {
-  await access(new URL('../dist/index.html', import.meta.url));
-} catch {
-  console.error('Build Patchbay first with npm run build, then run npm start.');
-  process.exit(1);
+if (process.argv.includes('--help')) {
+  console.log(
+    'Usage: npm start [-- --debug]\nLaunch the existing target/release/Patchbay.exe (or debug build with --debug). Build first with npm run desktop:build or npm run desktop:debug.',
+  );
+} else {
+  const args = process.argv.slice(2);
+  assert.ok(
+    args.length === 0 || (args.length === 1 && args[0] === '--debug'),
+    'Only --debug is supported.',
+  );
+  const metadata = JSON.parse(
+    await cargo(['metadata', '--no-deps', '--format-version', '1', '--locked', '--offline'], {
+      capture: true,
+    }),
+  );
+  const executable = join(
+    metadata.target_directory,
+    args.includes('--debug') ? 'debug' : 'release',
+    process.platform === 'win32' ? 'Patchbay.exe' : 'Patchbay',
+  );
+  try {
+    await access(executable);
+  } catch {
+    throw new Error(
+      `Build Patchbay first: npm run desktop:${args.includes('--debug') ? 'debug' : 'build'}`,
+    );
+  }
+  await run(executable, []);
 }
-
-const environment = { ...process.env };
-delete environment.ELECTRON_RUN_AS_NODE;
-delete environment.PATCHBAY_DEV_URL;
-const desktop = spawn(electron, [root], { cwd: root, env: environment, stdio: 'inherit', windowsHide: true });
-desktop.once('error', (error) => {
-  console.error('Could not launch Electron:', error.message);
-  process.exitCode = 1;
-});
-desktop.once('exit', (code) => { process.exitCode = code ?? 0; });
-process.once('SIGINT', () => desktop.kill());
-process.once('SIGTERM', () => desktop.kill());

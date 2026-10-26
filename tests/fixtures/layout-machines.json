@@ -1,0 +1,623 @@
+{
+  "capturedFrom": "Unmodified Patchbay 1.3.0 TypeScript parser before retirement",
+  "cases": [
+    {
+      "source": "# Output lives on each transition.\ntype mealy\nstart A\n\nA 0 A 0\nA 1 B 0\nB 0 A 0\nB 1 B 1\n",
+      "machine": {
+        "states": [
+          "A",
+          "B"
+        ],
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": "A",
+        "delta": {
+          "A": {
+            "0": "A",
+            "1": "B"
+          },
+          "B": {
+            "0": "A",
+            "1": "B"
+          }
+        },
+        "outputs": {
+          "kind": "mealy",
+          "lambda": {
+            "A": {
+              "0": "0",
+              "1": "0"
+            },
+            "B": {
+              "0": "0",
+              "1": "1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "# Output lives on each state.\ntype moore\nstart A\nout A 0\nout B 0\nout C 1\n\nA 0 A\nA 1 B\nB 0 A\nB 1 C\nC 0 A\nC 1 C\n",
+      "machine": {
+        "states": [
+          "A",
+          "B",
+          "C"
+        ],
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": "A",
+        "delta": {
+          "A": {
+            "0": "A",
+            "1": "B"
+          },
+          "B": {
+            "0": "A",
+            "1": "C"
+          },
+          "C": {
+            "0": "A",
+            "1": "C"
+          }
+        },
+        "outputs": {
+          "kind": "moore",
+          "lambda": {
+            "A": "0",
+            "B": "0",
+            "C": "1"
+          }
+        }
+      }
+    },
+    {
+      "source": "# Flip every bit.\ntype mealy\nstart A\n\nA 0 A 1\nA 1 A 0\n",
+      "machine": {
+        "states": [
+          "A"
+        ],
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": "A",
+        "delta": {
+          "A": {
+            "0": "A",
+            "1": "A"
+          }
+        },
+        "outputs": {
+          "kind": "mealy",
+          "lambda": {
+            "A": {
+              "0": "1",
+              "1": "0"
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "# Read least significant bit first.\n# A copies until the first 1; B complements remaining bits.\ntype mealy\nstart A\n\nA 0 A 0\nA 1 B 1\nB 0 B 1\nB 1 B 0\n",
+      "machine": {
+        "states": [
+          "A",
+          "B"
+        ],
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": "A",
+        "delta": {
+          "A": {
+            "0": "A",
+            "1": "B"
+          },
+          "B": {
+            "0": "B",
+            "1": "B"
+          }
+        },
+        "outputs": {
+          "kind": "mealy",
+          "lambda": {
+            "A": {
+              "0": "0",
+              "1": "1"
+            },
+            "B": {
+              "0": "1",
+              "1": "0"
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "# E = even parity, O = odd parity.\ntype moore\nstart E\nout E 0\nout O 1\n\nE 0 E\nE 1 O\nO 0 O\nO 1 E\n",
+      "machine": {
+        "states": [
+          "E",
+          "O"
+        ],
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": "E",
+        "delta": {
+          "E": {
+            "0": "E",
+            "1": "O"
+          },
+          "O": {
+            "0": "O",
+            "1": "E"
+          }
+        },
+        "outputs": {
+          "kind": "moore",
+          "lambda": {
+            "E": "0",
+            "O": "1"
+          }
+        }
+      }
+    },
+    {
+      "source": "# Read most significant bit first.\n# Next remainder = (2 * current remainder + bit) mod 3.\ntype moore\nstart R0\nout R0 0\nout R1 1\nout R2 2\n\nR0 0 R0\nR0 1 R1\nR1 0 R2\nR1 1 R0\nR2 0 R1\nR2 1 R2\n",
+      "machine": {
+        "states": [
+          "R0",
+          "R1",
+          "R2"
+        ],
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": "R0",
+        "delta": {
+          "R0": {
+            "0": "R0",
+            "1": "R1"
+          },
+          "R1": {
+            "0": "R2",
+            "1": "R0"
+          },
+          "R2": {
+            "0": "R1",
+            "1": "R2"
+          }
+        },
+        "outputs": {
+          "kind": "moore",
+          "lambda": {
+            "R0": "0",
+            "R1": "1",
+            "R2": "2"
+          }
+        }
+      }
+    },
+    {
+      "source": "type mealy\nstart Digit\nalphabet 0 1 2 3 4 5 6 7 8 9\nstate Digit\nDigit 0 Digit 0\nDigit 1 Digit 1\nDigit 2 Digit 2\nDigit 3 Digit 3\nDigit 4 Digit 4\nDigit 5 Digit 5\nDigit 6 Digit 6\nDigit 7 Digit 7\nDigit 8 Digit 8\nDigit 9 Digit 9\n",
+      "machine": {
+        "states": [
+          "Digit"
+        ],
+        "alphabet": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
+        "start": "Digit",
+        "delta": {
+          "Digit": {
+            "0": "Digit",
+            "1": "Digit",
+            "2": "Digit",
+            "3": "Digit",
+            "4": "Digit",
+            "5": "Digit",
+            "6": "Digit",
+            "7": "Digit",
+            "8": "Digit",
+            "9": "Digit"
+          }
+        },
+        "outputs": {
+          "kind": "mealy",
+          "lambda": {
+            "Digit": {
+              "0": "0",
+              "1": "1",
+              "2": "2",
+              "3": "3",
+              "4": "4",
+              "5": "5",
+              "6": "6",
+              "7": "7",
+              "8": "8",
+              "9": "9"
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "# A = no prefix, B = 1, C = 10.\ntype mealy\nstart A\nalphabet 0 1\nA 0 A 0\nA 1 B 0\nB 0 C 0\nB 1 B 0\nC 0 A 0\nC 1 B 1\n",
+      "machine": {
+        "states": [
+          "A",
+          "B",
+          "C"
+        ],
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": "A",
+        "delta": {
+          "A": {
+            "0": "A",
+            "1": "B"
+          },
+          "B": {
+            "0": "C",
+            "1": "B"
+          },
+          "C": {
+            "0": "A",
+            "1": "B"
+          }
+        },
+        "outputs": {
+          "kind": "mealy",
+          "lambda": {
+            "A": {
+              "0": "0",
+              "1": "0"
+            },
+            "B": {
+              "0": "0",
+              "1": "0"
+            },
+            "C": {
+              "0": "0",
+              "1": "1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "# Each input token is A_bit B_bit at one bit position.\n# Read least significant first; C0 and C1 remember the carry.\n# Append a 00 input after the last data pair to emit the carry.\ntype mealy\nstart C0\nalphabet 00 01 10 11\nC0 00 C0 0\nC0 01 C0 1\nC0 10 C0 1\nC0 11 C1 0\nC1 00 C0 1\nC1 01 C1 0\nC1 10 C1 0\nC1 11 C1 1\n",
+      "machine": {
+        "states": [
+          "C0",
+          "C1"
+        ],
+        "alphabet": [
+          "00",
+          "01",
+          "10",
+          "11"
+        ],
+        "start": "C0",
+        "delta": {
+          "C0": {
+            "10": "C0",
+            "11": "C1",
+            "00": "C0",
+            "01": "C0"
+          },
+          "C1": {
+            "10": "C1",
+            "11": "C1",
+            "00": "C0",
+            "01": "C1"
+          }
+        },
+        "outputs": {
+          "kind": "mealy",
+          "lambda": {
+            "C0": {
+              "10": "1",
+              "11": "0",
+              "00": "0",
+              "01": "1"
+            },
+            "C1": {
+              "10": "0",
+              "11": "1",
+              "00": "1",
+              "01": "0"
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "type mealy\nstart Locked\nalphabet coin push\nLocked coin Unlocked unlock\nLocked push Locked alarm\nUnlocked coin Unlocked refund\nUnlocked push Locked open\n",
+      "machine": {
+        "states": [
+          "Locked",
+          "Unlocked"
+        ],
+        "alphabet": [
+          "coin",
+          "push"
+        ],
+        "start": "Locked",
+        "delta": {
+          "Locked": {
+            "coin": "Unlocked",
+            "push": "Locked"
+          },
+          "Unlocked": {
+            "coin": "Unlocked",
+            "push": "Locked"
+          }
+        },
+        "outputs": {
+          "kind": "mealy",
+          "lambda": {
+            "Locked": {
+              "coin": "unlock",
+              "push": "alarm"
+            },
+            "Unlocked": {
+              "coin": "refund",
+              "push": "open"
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "# Credit states V0, V5 and V10; item price is 15.\n# Each vend returns to zero credit.\ntype mealy\nstart V0\nalphabet 5 10\nV0 5 V5 wait\nV0 10 V10 wait\nV5 5 V10 wait\nV5 10 V0 vend\nV10 5 V0 vend\nV10 10 V0 vend+5\n",
+      "machine": {
+        "states": [
+          "V0",
+          "V5",
+          "V10"
+        ],
+        "alphabet": [
+          "5",
+          "10"
+        ],
+        "start": "V0",
+        "delta": {
+          "V0": {
+            "5": "V5",
+            "10": "V10"
+          },
+          "V5": {
+            "5": "V10",
+            "10": "V0"
+          },
+          "V10": {
+            "5": "V0",
+            "10": "V0"
+          }
+        },
+        "outputs": {
+          "kind": "mealy",
+          "lambda": {
+            "V0": {
+              "5": "wait",
+              "10": "wait"
+            },
+            "V5": {
+              "5": "wait",
+              "10": "vend"
+            },
+            "V10": {
+              "5": "vend",
+              "10": "vend+5"
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "type moore\nstart A\nout X 0\nout A 0\nout Y 1\nX 0 X\nA 0 A\nY 0 Y",
+      "machine": {
+        "states": [
+          "X",
+          "A",
+          "Y"
+        ],
+        "alphabet": [
+          "0"
+        ],
+        "start": "A",
+        "delta": {
+          "X": {
+            "0": "X"
+          },
+          "A": {
+            "0": "A"
+          },
+          "Y": {
+            "0": "Y"
+          }
+        },
+        "outputs": {
+          "kind": "moore",
+          "lambda": {
+            "X": "0",
+            "A": "0",
+            "Y": "1"
+          }
+        }
+      }
+    },
+    {
+      "source": "type mealy\nstart A\nA 0 B 0\nA 1 C 1\nB 0 D 0\nB 1 E 1\nC 0 F 0\nC 1 G 1\nD 0 D 0\nD 1 D 1\nE 0 E 0\nE 1 E 1\nF 0 F 0\nF 1 F 1\nG 0 G 0\nG 1 G 1",
+      "machine": {
+        "states": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G"
+        ],
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": "A",
+        "delta": {
+          "A": {
+            "0": "B",
+            "1": "C"
+          },
+          "B": {
+            "0": "D",
+            "1": "E"
+          },
+          "C": {
+            "0": "F",
+            "1": "G"
+          },
+          "D": {
+            "0": "D",
+            "1": "D"
+          },
+          "E": {
+            "0": "E",
+            "1": "E"
+          },
+          "F": {
+            "0": "F",
+            "1": "F"
+          },
+          "G": {
+            "0": "G",
+            "1": "G"
+          }
+        },
+        "outputs": {
+          "kind": "mealy",
+          "lambda": {
+            "A": {
+              "0": "0",
+              "1": "1"
+            },
+            "B": {
+              "0": "0",
+              "1": "1"
+            },
+            "C": {
+              "0": "0",
+              "1": "1"
+            },
+            "D": {
+              "0": "0",
+              "1": "1"
+            },
+            "E": {
+              "0": "0",
+              "1": "1"
+            },
+            "F": {
+              "0": "0",
+              "1": "1"
+            },
+            "G": {
+              "0": "0",
+              "1": "1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "type moore\nstart S0\nout S0 0\nS0 0 S1\nout S1 1\nS1 0 S2\nout S2 0\nS2 0 S3\nout S3 1\nS3 0 S4\nout S4 0\nS4 0 S5\nout S5 1\nS5 0 S6\nout S6 0\nS6 0 S7\nout S7 1\nS7 0 S8\nout S8 0\nS8 0 S9\nout S9 1\nS9 0 S0",
+      "machine": {
+        "states": [
+          "S0",
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S5",
+          "S6",
+          "S7",
+          "S8",
+          "S9"
+        ],
+        "alphabet": [
+          "0"
+        ],
+        "start": "S0",
+        "delta": {
+          "S0": {
+            "0": "S1"
+          },
+          "S1": {
+            "0": "S2"
+          },
+          "S2": {
+            "0": "S3"
+          },
+          "S3": {
+            "0": "S4"
+          },
+          "S4": {
+            "0": "S5"
+          },
+          "S5": {
+            "0": "S6"
+          },
+          "S6": {
+            "0": "S7"
+          },
+          "S7": {
+            "0": "S8"
+          },
+          "S8": {
+            "0": "S9"
+          },
+          "S9": {
+            "0": "S0"
+          }
+        },
+        "outputs": {
+          "kind": "moore",
+          "lambda": {
+            "S0": "0",
+            "S1": "1",
+            "S2": "0",
+            "S3": "1",
+            "S4": "0",
+            "S5": "1",
+            "S6": "0",
+            "S7": "1",
+            "S8": "0",
+            "S9": "1"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Local Patchbay window: bounded domain work, user-selected project files, session and own-window screenshot.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-domain",
+    "allow-startup",
+    "allow-save-session",
+    "allow-open-project",
+    "allow-save-project",
+    "allow-save-screenshot",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-is-maximized",
+    "core:window:allow-close",
+    "core:window:allow-destroy",
+    "core:window:allow-start-dragging",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

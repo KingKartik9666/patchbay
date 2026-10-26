@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-domain"
+description = "Enables the domain command without any pre-configured scope."
+commands.allow = ["domain"]
+
+[[permission]]
+identifier = "deny-domain"
+description = "Denies the domain command without any pre-configured scope."
+commands.deny = ["domain"]

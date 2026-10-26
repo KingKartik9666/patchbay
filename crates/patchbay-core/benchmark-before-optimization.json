@@ -1,0 +1,31 @@
+{
+  "arch": "x86_64",
+  "buildProfile": "release",
+  "capturedAtUnixSeconds": 1791986734,
+  "conditions": {
+    "inputCodeUnits": 4096,
+    "states": 256,
+    "transitions": 512,
+    "warmups": 50
+  },
+  "convert": {
+    "p50Ms": 0.8796,
+    "p95Ms": 1.0211000000000001,
+    "samples": 500
+  },
+  "implementation": "patchbay-core pure Rust domain functions",
+  "parse": {
+    "p50Ms": 0.5683,
+    "p95Ms": 0.6434,
+    "samples": 500
+  },
+  "platform": "windows",
+  "scope": "No IPC, worker scheduling, React rendering, WebView2, or native file I/O is timed. Functions include their domain byte-budget checks. Return-value destruction occurs inside each sample.",
+  "simulate": {
+    "p50Ms": 1.8986,
+    "p95Ms": 2.1183,
+    "samples": 500
+  },
+  "toolchain": "1.99.0-x86_64-pc-windows-msvc",
+  "version": "2.0.0"
+}

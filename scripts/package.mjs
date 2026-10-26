@@ -1,78 +1,99 @@
-import { access, cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join, resolve, sep } from 'node:path';
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-import { packager } from '@electron/packager';
+import assert from 'node:assert/strict';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join, relative, resolve } from 'node:path';
+import { root } from './process.mjs';
+import { createZip } from './archive.mjs';
+import { contained, filesIn, sha256, slash, sourceRecords } from './release.mjs';
 
-const require = createRequire(import.meta.url);
-const root = fileURLToPath(new URL('../', import.meta.url));
-const output = join(root, 'release');
-await access(join(root, 'dist', 'index.html')).catch(() => {
-  throw new Error('Build Patchbay with npm run build before packaging it.');
-});
-const source = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
-const staging = await mkdtemp(join(tmpdir(), 'patchbay-package-'));
-
-try {
-  // Only the compiled renderer and tiny main/preload files belong in the desktop bundle.
-  await cp(join(root, 'dist'), join(staging, 'dist'), { recursive: true });
-  await cp(join(root, 'electron'), join(staging, 'electron'), { recursive: true });
-  await cp(join(root, 'LICENSE'), join(staging, 'LICENSE'));
-  await writeFile(join(staging, 'package.json'), JSON.stringify({
-    name: 'patchbay',
-    productName: 'Patchbay',
-    version: source.version,
-    description: source.description || 'A Mealy and Moore machine workbench',
-    author: source.author || 'Patchbay',
-    main: 'electron/main.cjs',
-    license: source.license || 'UNLICENSED',
-  }, null, 2));
-
-  const bundles = await packager({
-    dir: staging,
-    out: output,
-    name: 'Patchbay',
-    executableName: 'Patchbay',
-    platform: process.platform,
-    arch: process.arch,
-    electronVersion: require('electron/package.json').version,
-    asar: true,
-    overwrite: true,
-    prune: false,
-    appCategoryType: 'public.app-category.education',
-    win32metadata: {
-      CompanyName: 'Patchbay',
-      FileDescription: 'Mealy and Moore machine workbench',
-      ProductName: 'Patchbay',
-    },
-  });
-  for (const bundle of bundles) {
-    const absoluteBundle = resolve(bundle);
-    if (!absoluteBundle.startsWith(resolve(output) + sep)) throw new Error('Unexpected package output path.');
-    await cp(join(root, 'LICENSE'), join(absoluteBundle, 'PATCHBAY-LICENSE.txt'));
-    await cp(join(root, 'public/licenses'), join(absoluteBundle, 'licenses'), { recursive: true });
-    await writeFile(join(absoluteBundle, 'README.txt'), (await readFile(join(root, 'docs/distribution.md'), 'utf8')).replaceAll('@VERSION@', source.version));
-    if (process.platform === 'win32') {
-      // The interface is English. Keep its Chromium locale and remove only unused
-      // locale files from this freshly generated package, preserving the runtime.
-      const locales = join(absoluteBundle, 'locales');
-      await access(join(locales, 'en-US.pak'));
-      for (const entry of await readdir(locales, { withFileTypes: true })) {
-        if (entry.isFile() && entry.name.endsWith('.pak') && entry.name !== 'en-US.pak') {
-          const target = resolve(locales, entry.name);
-          if (!target.startsWith(absoluteBundle + sep)) throw new Error('Unexpected locale path.');
-          await rm(target);
-        }
-      }
-    }
-    console.log(`Packaged Patchbay: ${absoluteBundle}`);
+export async function packageWindows(settings, installerSource, resources) {
+  const { output, portable, installer, binary, manifest } = settings;
+  const payload = new Map([
+    ['Patchbay.exe', await readFile(binary)],
+    [
+      'README-WINDOWS.md',
+      Buffer.from(
+        (await readFile(join(root, 'docs/distribution.md'), 'utf8')).replaceAll(
+          '@VERSION@',
+          manifest.version,
+        ),
+      ),
+    ],
+  ]);
+  for (const [source, destination] of Object.entries(resources)) {
+    contained(output, destination);
+    assert.ok(!payload.has(destination), 'Duplicate resource destination: ' + destination);
+    payload.set(destination, await readFile(resolve(root, 'src-tauri', source)));
   }
-} finally {
-  // The deletion target is the exact temporary child created above, never the project.
-  const temporaryRoot = resolve(tmpdir()) + sep;
-  const absoluteStaging = resolve(staging);
-  if (absoluteStaging.startsWith(temporaryRoot) && absoluteStaging.slice(temporaryRoot.length).startsWith('patchbay-package-')) {
-    await rm(absoluteStaging, { recursive: true, force: true });
+  // Some toolchain configurations emit the loader separately; include it if present.
+  try {
+    payload.set('WebView2Loader.dll', await readFile(join(dirname(binary), 'WebView2Loader.dll')));
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  const files = new Map([...payload].map(([name, data]) => [`${portable}/${name}`, data]));
+  files.set(
+    `${portable}.zip`,
+    createZip([...payload].map(([name, data]) => [`${portable}/${name}`, data])),
+  );
+  files.set(installer, await readFile(installerSource));
+  files.set('README-WINDOWS.md', payload.get('README-WINDOWS.md'));
+  // Only overwrite our known artifacts. Never recursively delete a release folder.
+  try {
+    const existing = await filesIn(output);
+    const allowed = new Set([...files.keys(), 'release-manifest.json', 'SHA256SUMS.txt']);
+    for (const path of existing)
+      assert.ok(
+        allowed.has(slash(relative(output, path))),
+        'Unexpected file in release directory: ' + path,
+      );
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  const records = [...files]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([path, data]) => ({ path, bytes: data.length, sha256: sha256(data) }));
+  const report = {
+    format: 'patchbay-release',
+    formatVersion: 1,
+    version: manifest.version,
+    platform: 'windows-x64',
+    runtime: 'Tauri / preinstalled Microsoft Edge WebView2 Evergreen Runtime',
+    portable,
+    installer,
+    sources: await sourceRecords(),
+    files: records,
+  };
+  files.set('release-manifest.json', Buffer.from(JSON.stringify(report, null, 2) + '\n'));
+  files.set(
+    'SHA256SUMS.txt',
+    Buffer.from(
+      [...files]
+        .sort(([a], [b]) => (a < b ? -1 : 1))
+        .map(([name, data]) => `${sha256(data)}  ${name}`)
+        .join('\n') + '\n',
+    ),
+  );
+  for (const [path, data] of files) {
+    const destination = contained(output, path);
+    await mkdir(dirname(destination), { recursive: true });
+    await writeFile(destination, data);
+  }
+  await mkdir(join(root, 'artifacts'), { recursive: true });
+  await copyFile(
+    join(output, 'release-manifest.json'),
+    join(root, 'artifacts/package-manifest.json'),
+  );
+  console.log(`Packaged ${files.size} files in ${output}`);
+  return output;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) {
+  if (process.argv.includes('--help'))
+    console.log(
+      'Usage: npm run package\nBuild the Windows x64 NSIS installer, portable ZIP, notices and hashes, then check the release. Alias of npm run dist:windows.',
+    );
+  else {
+    assert.equal(process.argv.length, 2, 'Unexpected package command argument.');
+    await import('./distribute.mjs').then((module) => module.distribute());
   }
 }

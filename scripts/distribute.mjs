@@ -1,35 +1,73 @@
-import { spawn } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { readFile, mkdir, writeFile } from 'node:fs/promises';
-import { resolve, join } from 'node:path';
-import { createRequire } from 'node:module';
+import assert from 'node:assert/strict';
+import { access, readFile, readdir, stat } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { checkPackage } from './check-package.mjs';
+import { generateNotices } from './licenses.mjs';
+import { packageWindows } from './package.mjs';
+import { nodeScript, tauri } from './process.mjs';
+import { releaseSettings, sha256, sourceRecords } from './release.mjs';
 
-const root = resolve(import.meta.dirname, '..'), require = createRequire(import.meta.url);
-if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('This verified distribution target is Windows x64.');
-const environment = { ...process.env, CSC_IDENTITY_AUTO_DISCOVERY: 'false' };
-delete environment.CSC_LINK; delete environment.WIN_CSC_LINK; delete environment.CSC_KEY_PASSWORD; delete environment.WIN_CSC_KEY_PASSWORD;
-process.env.CSC_IDENTITY_AUTO_DISCOVERY = 'false';
-for (const key of ['CSC_LINK','WIN_CSC_LINK','CSC_KEY_PASSWORD','WIN_CSC_KEY_PASSWORD']) delete process.env[key];
-process.env.ELECTRON_BUILDER_CACHE = process.env.ELECTRON_BUILDER_CACHE || join(root, '.cache/electron-builder');
-const { build, Platform, Arch } = await import('electron-builder');
-function run(script) {
-  return new Promise((done, fail) => {
-    const child = spawn(process.execPath, [join(root, script)], { cwd: root, env: environment, stdio: 'inherit', windowsHide: true });
-    child.once('error', fail); child.once('exit', code => code === 0 ? done() : fail(new Error(`${script} exited ${code}`)));
-  });
+export async function distribute() {
+  assert.ok(
+    process.platform === 'win32' && process.arch === 'x64',
+    'Build this Windows x64 distribution on Windows x64.',
+  );
+  assert.ok(
+    !process.env.CARGO_BUILD_TARGET,
+    'Unset CARGO_BUILD_TARGET for the native Windows x64 release.',
+  );
+  const settings = await releaseSettings(),
+    sourceBefore = await sourceRecords();
+  const resources = {
+    ...settings.config.bundle.resources,
+    '../LICENSE': 'PATCHBAY-LICENSE.txt',
+    '../.cache/distribution/THIRD-PARTY-NOTICES.txt': 'THIRD-PARTY-NOTICES.txt',
+  };
+  await generateNotices();
+  const started = Date.now();
+  await tauri([
+    'build',
+    '--bundles',
+    'nsis',
+    '--ci',
+    '--config',
+    JSON.stringify({ bundle: { resources } }),
+    '--',
+    '--locked',
+  ]);
+  assert.deepEqual(
+    await sourceRecords(),
+    sourceBefore,
+    'Sources changed during the release build; rerun packaging.',
+  );
+  await nodeScript('check-bundle.mjs');
+  await access(settings.binary);
+  const installerDirectory = join(settings.nativeOutput, 'bundle/nsis');
+  const candidates = [];
+  for (const name of await readdir(installerDirectory)) {
+    if (!name.endsWith('-setup.exe')) continue;
+    const path = join(installerDirectory, name),
+      info = await stat(path);
+    if (info.isFile() && info.mtimeMs >= started - 2000) candidates.push(path);
+  }
+  assert.equal(candidates.length, 1, 'Expected exactly one freshly built NSIS installer.');
+  const buildHash = sha256(await readFile(settings.binary));
+  await packageWindows(settings, candidates[0], resources);
+  assert.equal(
+    sha256(await readFile(settings.binary)),
+    buildHash,
+    'The release executable changed while packaging.',
+  );
+  return checkPackage({ currentSource: true });
 }
-await run('scripts/check-bundle.mjs');
-await run('scripts/package.mjs');
-await run('scripts/check-package.mjs');
-await build({ projectDir: root, prepackaged: join(root, 'release/Patchbay-win32-x64'),
-  targets: Platform.WINDOWS.createTarget(['nsis', 'zip'], Arch.x64), config: require('../electron-builder.cjs'), publish: 'never' });
-const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
-const output = join(root, 'release/distributables'); await mkdir(output, { recursive: true });
-await writeFile(join(output, 'README.txt'), (await readFile(join(root, 'docs/distribution.md'), 'utf8')).replaceAll('@VERSION@', manifest.version));
-const files = [];
-for (const name of [`Patchbay-${manifest.version}-Setup-x64.exe`, `Patchbay-${manifest.version}-Windows-x64.zip`, 'README.txt']) {
-  const data = await readFile(join(output, name)); files.push({ name, bytes: data.length, sha256: createHash('sha256').update(data).digest('hex') });
+
+if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) {
+  if (process.argv.includes('--help'))
+    console.log(
+      'Usage: npm run dist:windows\nBuild the locked Tauri release and NSIS installer, then create and verify release/<version>.\nClose running copies of target/release/Patchbay.exe before building. The installer requires preinstalled WebView2 and never downloads it.',
+    );
+  else {
+    assert.equal(process.argv.length, 2, 'Unexpected distribute argument.');
+    await distribute();
+  }
 }
-await writeFile(join(output, 'SHA256SUMS.txt'), files.map(file => `${file.sha256}  ${file.name}`).join('\n') + '\n');
-await writeFile(join(output, 'release.json'), JSON.stringify({ version: manifest.version, platform: 'win32', arch: 'x64', signed: false, files }, null, 2));
-console.log(JSON.stringify({ output, version: manifest.version, files }, null, 2));
