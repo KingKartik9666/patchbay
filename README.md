@@ -1,5 +1,7 @@
 # Patchbay
 
+smol project for visual learning
+
 An offline Mealy and Moore machine workbench for Windows. React and TypeScript own the interface; an independent Rust library owns parsing, simulation, conversion and graph editing. Tauri 2 supplies the desktop window, native file dialogs and local persistence.
 
 The interface uses opaque surfaces, local Nunito text and custom navigation icons. Light mode uses blue, red and white; dark mode uses dark grey, orange and lime. Page and control transitions respect reduced-motion preferences. Frame diagnostics stay on the device.
