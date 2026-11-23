@@ -39,6 +39,21 @@ interface GlyphFlight {
   elapsed: number;
 }
 
+/**
+ * Night plate fallbacks for a failed CSS read; the themed --panel-* tokens in
+ * reference.css win and are re-read on every theme change. The live signal is the
+ * theme's one hue: pistachio on charcoal, or PlayStation blue on pearl.
+ */
+const INK = '#7F8884',
+  SIGNAL = '#DCF1CF',
+  RING = '#8F9894',
+  PLATE = '#111312',
+  GLYPH_FONT = "500 28px 'IBM Plex Mono', monospace";
+/** Idle and live edges differ in width and glow as well as luminance. */
+const IDLE_WIDTH = 2.5,
+  ACTIVE_WIDTH = 4,
+  RING_WIDTH = 2,
+  ACTIVE_GLOW = 12;
 const clamp = (value: number, low = 0, high = 1) => Math.max(low, Math.min(high, value));
 const ease = (u: number) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
 const easeCubic = (u: number) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
@@ -58,7 +73,10 @@ export class DiagramInk {
   private fontsReady = document.fonts?.status === 'loaded' || !document.fonts;
   private disposed = false;
   private dirty = true;
-  private ink = '#161616';
+  private ink = INK;
+  private signal = SIGNAL;
+  private ring = RING;
+  private plate = PLATE;
   private time = 0;
   private total = 0;
   private morphTime = 0.4;
@@ -79,7 +97,6 @@ export class DiagramInk {
   private flight?: GlyphFlight;
   private glyphDirty = false;
   private head: DPoint = { x: 0, y: 0 };
-  private tail: DPoint = { x: 0, y: 0 };
   private drawCount = 0;
   private scroll = () => {
     this.dirty = true;
@@ -172,16 +189,28 @@ export class DiagramInk {
       this.finishBuild(false);
     } else this.schedule(!first && changedMachine && !replay);
     if (changedMachine || replay) this.host.scrollLeft = this.host.scrollTop = 0;
-    this.refreshTheme();
+    this.refreshTheme(false);
     this.publish();
     this.draw();
   }
 
-  refreshTheme(): void {
+  /**
+   * Re-reads the plate tokens. With `paint`, the ink is redrawn at once rather than on
+   * the next clock frame, so a View Transition snapshot taken after a theme change
+   * already shows the new colours.
+   */
+  refreshTheme(paint = true): void {
     if (this.disposed) return;
-    this.ink = getComputedStyle(this.host).getPropertyValue('--copper').trim() || '#161616';
+    const style = getComputedStyle(this.host);
+    this.ink = style.getPropertyValue('--panel-ink').trim() || INK;
+    this.signal = style.getPropertyValue('--panel-signal').trim() || SIGNAL;
+    this.ring = style.getPropertyValue('--panel-ring').trim() || RING;
+    this.plate = style.getPropertyValue('--panel').trim() || PLATE;
     this.dirty = true;
     this.glyphDirty = !!this.flight;
+    if (!paint || !this.data) return;
+    this.draw();
+    if (this.glyphDirty) this.drawGlyph();
   }
 
   update(dt: number, signals: Readonly<Signals>, travel: Travel, activeState: string): void {
@@ -488,10 +517,10 @@ export class DiagramInk {
         c.beginPath();
         c.moveTo(left, start.y);
         c.lineTo(x, start.y);
-        c.strokeStyle = this.ink;
-        c.lineWidth = 1.7;
+        c.strokeStyle = this.ring;
+        c.lineWidth = IDLE_WIDTH;
         c.stroke();
-        this.arrow(x, start.y, 0, 1);
+        this.arrow(x, start.y, 0, 1, this.ring);
       }
     }
     if (this.building)
@@ -508,8 +537,8 @@ export class DiagramInk {
           -Math.PI / 2 + Math.PI * 2 * (1 - (1 - u) ** 2),
         );
         c.globalAlpha = node.reachable ? 1 : 0.4;
-        c.strokeStyle = this.ink;
-        c.lineWidth = 1.7;
+        c.strokeStyle = this.ring;
+        c.lineWidth = RING_WIDTH;
         c.stroke();
       }
     c.globalAlpha = 1;
@@ -535,7 +564,7 @@ export class DiagramInk {
     for (let i = 1; i < index; i++) c.lineTo(points[i * 2], points[i * 2 + 1]);
     c.lineTo(x, y);
     c.strokeStyle = this.ink;
-    c.lineWidth = 1.65;
+    c.lineWidth = IDLE_WIDTH;
     c.stroke();
     this.arrow(
       x,
@@ -546,7 +575,30 @@ export class DiagramInk {
     c.globalAlpha = inheritedAlpha;
   }
   private drawTravel(edge: DEdge): void {
-    const c = this.context!;
+    const c = this.context!,
+      points = edge.pts,
+      last = (EDGE_SAMPLES - 1) * 2;
+    // The live edge switches to the signal at once, so a reduced-motion or low
+    // quality frame still shows which transition fired; only the bead travels.
+    c.save();
+    if (this.quality !== 'low') {
+      c.shadowColor = this.signal;
+      c.shadowBlur = ACTIVE_GLOW;
+    }
+    c.beginPath();
+    c.moveTo(points[0], points[1]);
+    for (let i = 1; i < EDGE_SAMPLES; i++) c.lineTo(points[i * 2], points[i * 2 + 1]);
+    c.strokeStyle = this.signal;
+    c.lineWidth = ACTIVE_WIDTH;
+    c.stroke();
+    this.arrow(
+      points[last],
+      points[last + 1],
+      Math.atan2(points[last + 1] - points[last - 1], points[last] - points[last - 2]),
+      1.15,
+      this.signal,
+    );
+    c.restore();
     if (
       this.reducedMotion ||
       this.quality === 'low' ||
@@ -556,21 +608,24 @@ export class DiagramInk {
       return;
     const u = easeCubic(clamp((this.travelProgress - 0.26 / 0.9) / (0.38 / 0.9)));
     pointAt(edge, u, this.head);
-    pointAt(edge, Math.max(0, u - 0.09), this.tail);
+    // A plate-coloured rim separates the signal bead from the signal edge it rides.
+    c.save();
+    c.shadowColor = this.signal;
+    c.shadowBlur = ACTIVE_GLOW * 1.5;
     c.beginPath();
-    c.moveTo(this.tail.x, this.tail.y);
-    c.lineTo(this.head.x, this.head.y);
-    c.strokeStyle = this.ink;
-    c.lineWidth = 2.5;
-    c.stroke();
-    c.beginPath();
-    c.arc(this.head.x, this.head.y, 2.7, 0, Math.PI * 2);
-    c.fillStyle = this.ink;
+    c.arc(this.head.x, this.head.y, 6, 0, Math.PI * 2);
+    c.fillStyle = this.signal;
     c.fill();
+    c.restore();
+    c.beginPath();
+    c.arc(this.head.x, this.head.y, 7, 0, Math.PI * 2);
+    c.strokeStyle = this.plate;
+    c.lineWidth = 2;
+    c.stroke();
   }
-  private arrow(x: number, y: number, angle: number, scale: number): void {
+  private arrow(x: number, y: number, angle: number, scale: number, color = this.ink): void {
     const c = this.context!,
-      size = 8 * scale,
+      size = 9 * scale,
       cos = Math.cos(angle),
       sin = Math.sin(angle);
     c.beginPath();
@@ -578,7 +633,7 @@ export class DiagramInk {
     c.lineTo(x - size * cos + size * 0.45 * sin, y - size * sin - size * 0.45 * cos);
     c.lineTo(x - size * cos - size * 0.45 * sin, y - size * sin + size * 0.45 * cos);
     c.closePath();
-    c.fillStyle = this.ink;
+    c.fillStyle = color;
     c.fill();
   }
   private drawGlyph(): void {
@@ -593,8 +648,8 @@ export class DiagramInk {
     c.translate(from.x + (to.x - from.x) * u, from.y + (to.y - from.y) * u);
     c.scale(0.8 + 0.2 * u, 0.8 + 0.2 * u);
     c.globalAlpha = 1 - u;
-    c.fillStyle = this.ink;
-    c.font = '850 25px "Nunito Variable", sans-serif';
+    c.fillStyle = this.signal;
+    c.font = GLYPH_FONT;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillText(glyph, 0, 0);

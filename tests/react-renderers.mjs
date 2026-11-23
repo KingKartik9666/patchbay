@@ -170,9 +170,39 @@ try {
     window.rendererFixture.tick(61, 0.05);
   });
   const lightInk = await page.locator('.diagram-ink').evaluate((canvas) => canvas.toDataURL());
+  const lightDraws = Number(await page.locator('.diagram-ink').getAttribute('data-draws'));
   await page.evaluate(() => window.rendererFixture.setTheme('dark'));
   const darkInk = await page.locator('.diagram-ink').evaluate((canvas) => canvas.toDataURL());
-  assert.notEqual(darkInk, lightInk, 'Theme changes repaint the existing Canvas ink');
+  // The instrument plate is themed (Night: charcoal and pistachio; Pearl:
+  // pearl, black ink and PlayStation blue). Every plate token the canvases read
+  // is defined in both themes and differs between them.
+  const plateTokens = ['--panel', '--panel-ink', '--panel-ring', '--panel-signal', '--panel-line'];
+  const plate = await page.evaluate(
+    (names) =>
+      ['light', 'dark'].map((theme) => {
+        document.documentElement.dataset.theme = theme;
+        const css = getComputedStyle(document.getElementById('diagram'));
+        return names.map((name) => css.getPropertyValue(name).trim());
+      }),
+    plateTokens,
+  );
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme = 'dark';
+  });
+  assert.ok(
+    [...plate[0], ...plate[1]].every(Boolean),
+    'The diagram reads every --panel token in both themes: ' + JSON.stringify(plate),
+  );
+  plateTokens.forEach((name, index) =>
+    assert.notEqual(plate[0][index], plate[1][index], `${name} differs between Pearl and Night`),
+  );
+  assert.ok(
+    Number(await page.locator('.diagram-ink').getAttribute('data-draws')) > lightDraws,
+    'A theme change re-reads the plate tokens and repaints the Canvas ink',
+  );
+  assert.notEqual(darkInk, lightInk, 'The Canvas ink is redrawn in the Night palette');
+  // The ink is re-read on every change: back in Pearl it is pixel-identical to
+  // the first Pearl paint, so nothing of the Night palette survives.
   await page.evaluate(() => window.rendererFixture.setTheme('light'));
   assert.equal(
     await page.locator('.diagram-ink').evaluate((canvas) => canvas.toDataURL()),
@@ -187,7 +217,7 @@ try {
   await page.evaluate(() => window.rendererFixture.setQuality('medium'));
   await waitForViewport();
   checks.push(
-    'Light/dark themes repaint reversibly without remounting; quality changes bound Canvas resolution',
+    'Pearl and Night repaint their own themed plate without remounting, and switching back restores the Pearl ink exactly; quality changes bound Canvas resolution',
   );
 
   await page.setViewportSize({ width: 3440, height: 1440 });

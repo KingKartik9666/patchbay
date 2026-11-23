@@ -44,9 +44,15 @@ export function decodePng(png) {
       pixels[index] = (raw[source++] + prediction) & 255;
     }
   }
+  let minimumAlpha = 255;
+  if (channels === 4)
+    for (let index = 3; index < pixels.length; index += 4)
+      minimumAlpha = Math.min(minimumAlpha, pixels[index]);
   return {
     width,
     height,
+    channels,
+    minimumAlpha,
     pixel: (x, y) =>
       Array.from(
         pixels.subarray(

@@ -1,4 +1,5 @@
 import type {
+  Backdrop,
   Evaluation,
   GraphResult,
   Page,
@@ -8,6 +9,7 @@ import type {
   Preset,
 } from '../domain/contracts';
 export interface WorkbenchState {
+  backdrop: Backdrop;
   evaluation: Evaluation | null;
   input: string;
   presets: Preset[];
@@ -25,18 +27,30 @@ export interface WorkbenchState {
   message: string;
   loadError: string;
   busy: boolean;
+  /** The app version whose launch was last played or skipped (persisted). */
+  launchSeen: string | null;
+  /** This build's version, from the startup payload. */
+  version: string;
 }
+/** Set by the native initialization script before the page parses, so a
+ * Pearl user never sees a Night frame while the startup payload is in flight. */
+const boot = typeof window === 'undefined' ? undefined : window.__patchbayBoot;
 export const defaults: Preferences = {
-  theme: 'light',
+  theme: boot?.theme ?? 'dark',
   motionBlur: false,
   quality: 'medium',
-  glass: 'solid',
+  glass: 'baked',
   reducedMotion: false,
   focusMode: false,
   highContrast: false,
   mooreInitial: true,
+  launchAnimation: true,
+  frameRate: 'match',
 };
+/** Browser previews and tests have no native window, so the frame stays opaque. */
+export const noBackdrop: Backdrop = { kind: 'none', reason: null };
 export const initialState: WorkbenchState = {
+  backdrop: noBackdrop,
   evaluation: null,
   input: '',
   presets: [],
@@ -54,6 +68,8 @@ export const initialState: WorkbenchState = {
   message: '',
   loadError: '',
   busy: false,
+  launchSeen: null,
+  version: boot?.version ?? '',
 };
 export type Action =
   | { type: 'patch'; value: Partial<WorkbenchState> }

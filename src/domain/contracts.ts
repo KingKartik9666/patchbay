@@ -138,7 +138,12 @@ export interface Preferences {
   focusMode: boolean;
   highContrast: boolean;
   mooreInitial: boolean;
+  /** Play the launch when Patchbay opens (read by Rust on the next start). */
+  launchAnimation: boolean;
+  /** 'match' follows the display's refresh rate; 60 and 30 save power. */
+  frameRate: 'match' | '60' | '30';
 }
+export type FrameRate = Preferences['frameRate'];
 export type Page = 'bench' | 'machines' | 'editor' | 'learn';
 export type Panel = 'trace' | 'text' | 'settings' | null;
 export interface SavedSession extends Preferences {
@@ -147,10 +152,25 @@ export interface SavedSession extends Preferences {
   manualDraft: string | null;
   route: Page;
   graph: GraphDraft | null;
+  /** The app version whose launch was last played or skipped. */
+  launchSeen?: string | null;
+}
+/** The native window material Rust applied and verified before the page painted. */
+export interface Backdrop {
+  kind: 'mica' | 'none';
+  reason: string | null;
+}
+/** The refresh rate Rust read for the monitor the window is on (0 = unknown). */
+export interface DisplayInfo {
+  refreshHz: number;
+  source: 'win32' | 'unknown';
+  device: string | null;
 }
 export interface Startup {
   session: SavedSession | null;
   migrated: boolean;
   warnings: string[];
   version: string;
+  backdrop: Backdrop;
+  display: DisplayInfo;
 }

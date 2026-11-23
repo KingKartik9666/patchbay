@@ -129,7 +129,10 @@ export function buildDiagram(machine: MachineDef, box: { w: number; h: number })
   for (const depth of depths.values()) rowCounts.set(depth, (rowCounts.get(depth) ?? 0) + 1);
   const maxRows = Math.max(1, ...rowCounts.values());
   const minimumGap = r * 2 + 80;
-  const horizontalMargin = Math.max(r + 48, Math.min(100, viewportWidth * 0.13));
+  // The start arrow (47px, tail at x - r - 52) and its "start" label (x - r - 60) sit left of
+  // the start state and must never be clipped by the plate's inset and radius: r + 72 keeps
+  // the tail >= 20px and the label >= 12px inside at every width.
+  const horizontalMargin = Math.max(r + 72, Math.min(100, viewportWidth * 0.13));
   const padY = Math.max(r * 3.5 + 20, Math.min(120, viewportHeight * 0.25));
   // Expand the drawable area instead of compressing states, labels and loops.
   // The renderer scrolls this area inside the unchanged stage viewport.

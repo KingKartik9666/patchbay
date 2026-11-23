@@ -1,4 +1,6 @@
 use crate::{
+    appearance::{self, Backdrop},
+    display::{self, DisplayInfo},
     files,
     session::{self, SavedSession, SessionStore, Startup},
 };
@@ -69,7 +71,7 @@ async fn worker<T: Send + 'static>(
         .await
         .map_err(|_| DesktopError::new("internal", "The desktop operation could not finish."))?
 }
-fn session_path(app: &AppHandle) -> Result<PathBuf, DesktopError> {
+pub(crate) fn session_path(app: &AppHandle) -> Result<PathBuf, DesktopError> {
     #[cfg(debug_assertions)]
     if let Some(path) = std::env::var_os("PATCHBAY_TEST_DATA_DIR") {
         return Ok(PathBuf::from(path).join("session.json"));
@@ -101,6 +103,7 @@ pub async fn startup(
     window: WebviewWindow,
     app: AppHandle,
     store: State<'_, SessionStore>,
+    backdrop: State<'_, Backdrop>,
 ) -> Result<Startup, DesktopError> {
     main_window(&window)?;
     let path = session_path(&app)?;
@@ -116,13 +119,34 @@ pub async fn startup(
         legacy_profile
     };
     let lock = store.lock.clone();
-    worker(move || {
+    let mut result = worker(move || {
         let _guard = lock
             .lock()
             .map_err(|_| DesktopError::new("internal", "Session storage is unavailable."))?;
         Ok(session::startup(path, legacy_profile))
     })
-    .await
+    .await?;
+    result.backdrop = backdrop.inner().clone();
+    result.display = display::detect(&window);
+    display::remember(&app, &result.display);
+    // Pin the native tint before the page first paints translucent.
+    if let Some(saved) = &result.session {
+        appearance::pin_theme(&window, &saved.theme);
+    }
+    Ok(result)
+}
+
+/// The refresh rate of the monitor the window is on now. The page asks again
+/// when its measured vsync keeps disagreeing with the last answer.
+#[tauri::command]
+pub async fn display_refresh(
+    window: WebviewWindow,
+    app: AppHandle,
+) -> Result<DisplayInfo, DesktopError> {
+    main_window(&window)?;
+    let info = display::detect(&window);
+    display::remember(&app, &info);
+    Ok(info)
 }
 
 #[tauri::command]
@@ -248,8 +272,10 @@ pub async fn save_screenshot(
         .acquire_owned()
         .await
         .map_err(|_| DesktopError::new("internal", "The file dialog is unavailable."))?;
+    // The helper flattens any transparent pixels over this theme's page colour.
+    let theme = window.theme().ok();
     worker(move || {
-        let image = crate::screenshot::capture().map_err(|error| DesktopError::io(&error))?;
+        let image = crate::screenshot::capture(theme).map_err(|error| DesktopError::io(&error))?;
         let Some(path) = rfd::FileDialog::new()
             .set_title("Save Patchbay screenshot")
             .set_file_name("patchbay.png")

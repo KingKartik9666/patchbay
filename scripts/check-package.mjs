@@ -60,7 +60,9 @@ export async function checkPackage({ currentSource = false } = {}) {
   for (const name of [
     'PATCHBAY-LICENSE.txt',
     'THIRD-PARTY-NOTICES.txt',
-    'licenses/Nunito-OFL.txt',
+    'licenses/Inter-OFL.txt',
+    'licenses/IBM-Plex-OFL.txt',
+    'licenses/Newsreader-OFL.txt',
     'README-WINDOWS.md',
   ]) {
     assert.ok(buffers.get(`${portable}/${name}`)?.length, 'Missing portable resource: ' + name);

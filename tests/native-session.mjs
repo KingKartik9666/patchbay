@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { launchNative, root, artifacts, domain } from './helpers/native.mjs';
+import { launchNative, root, artifacts, domain, runSuffix } from './helpers/native.mjs';
+import { decodePng } from './helpers/png.mjs';
 
 let run = await launchNative();
 const dataDirectory = run.dataDirectory,
@@ -137,9 +138,35 @@ try {
   await page.locator('#screenshot').click();
   await dialog('Save Patchbay screenshot', pngPath);
   await page.locator('#toast').filter({ hasText: 'Screenshot saved' }).waitFor();
-  assert.equal((await readFile(pngPath)).subarray(1, 4).toString(), 'PNG');
+  assert.equal(
+    await page.locator('html').getAttribute('data-capture'),
+    null,
+    'The capture flag is cleared after the screenshot',
+  );
+  // The capture hides the field canvas; it must come back afterwards.
+  assert.equal(
+    await page.locator('#field').evaluate((canvas) => getComputedStyle(canvas).visibility),
+    'visible',
+    'The field returns once the capture ends',
+  );
+  const shot = decodePng(await readFile(pngPath));
+  assert.equal(shot.minimumAlpha, 255, 'Every screenshot pixel is opaque');
+  // The 52px glass titlebar carries the logo and caption over the field: a capture
+  // that lost the Mica backdrop would come back as one flat black band.
+  const scale = shot.width / (await page.evaluate(() => innerWidth));
+  const band = [];
+  for (let y = Math.round(8 * scale); y < Math.round(36 * scale); y += 2)
+    for (let x = 0; x < shot.width; x += 2) band.push(shot.pixel(x, y));
+  assert.ok(
+    band.some((pixel) => Math.max(...pixel) >= 64),
+    'The screenshot titlebar is not uniformly black',
+  );
+  assert.ok(
+    band.some((pixel) => pixel.some((channel, index) => channel !== band[0][index])),
+    'The screenshot titlebar shows its logo and caption',
+  );
   await closeDrawer();
-  checks.push('Native own-window screenshot saves a real PNG');
+  checks.push('Native own-window screenshot saves an opaque PNG with a visible titlebar');
   await page.locator('[data-route=bench]').click();
   await page.locator('#text-shortcut').click();
   await page.locator('#open-file').click();
@@ -200,14 +227,16 @@ try {
   assert.match((await saved()).source, /start Final/);
   checks.push('Repeated native close requests wait for the final in-flight save');
   await writeFile(
-    resolve(artifacts, 'session-report.json'),
+    resolve(artifacts, `session-report${runSuffix}.json`),
     JSON.stringify({ checks, dataDirectory }, null, 2),
   );
   console.log(JSON.stringify({ checks }, null, 2));
 } catch (error) {
   console.error('Native session check failed:', error);
   if (run)
-    await run.page.screenshot({ path: resolve(artifacts, 'session-failure.png') }).catch(() => {});
+    await run.page
+      .screenshot({ path: resolve(artifacts, `session-failure${runSuffix}.png`) })
+      .catch(() => {});
   throw error;
 } finally {
   if (run) await run.close();

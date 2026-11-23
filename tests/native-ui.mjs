@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { launchNative, artifacts, root, domain } from './helpers/native.mjs';
+import { launchNative, artifacts, root, domain, runSuffix } from './helpers/native.mjs';
 const run = await launchNative(),
   { page } = run,
   errors = [],
@@ -56,7 +56,15 @@ try {
   assert.equal(await page.locator('#summary-output').innerText(), '0100');
   await closeDrawer();
   checks.push('Conversion and initial-output setting');
-  await page.locator('#text-shortcut').click();
+  // The rail's Text definition row opens the same panel and marks itself
+  // active. Panel rows toggle a non-modal panel, so they expose aria-expanded;
+  // aria-current stays with the one current page.
+  await page.locator('[data-route=text]').click();
+  await page.locator('#source').waitFor();
+  assert.equal(await page.locator('[data-route=text]').getAttribute('aria-expanded'), 'true');
+  assert.equal(await page.locator('[data-route=text]').getAttribute('aria-current'), null);
+  assert.match(await page.locator('[data-route=text]').getAttribute('class'), /\bactive\b/);
+  assert.equal(await page.locator('#rail [aria-current=page]').count(), 1);
   await page.locator('#source').fill('type mealy\nstart Ω\nΩ 🙂 Ω ✨\nΩ λ Ω β');
   await page.locator('#apply').click();
   await page.locator('#drawer').waitFor({ state: 'hidden' });
@@ -67,7 +75,7 @@ try {
   await trace();
   assert.equal(await page.locator('#summary-output').innerText(), '✨β✨');
   await closeDrawer();
-  checks.push('Unicode text editing and simulation');
+  checks.push('Unicode text editing and simulation from the rail Text definition panel');
   await page.locator('#text-shortcut').click();
   await page.locator('#source').fill('type moore\nstart A\nA 0 A');
   await page.locator('#apply').click();
@@ -144,7 +152,9 @@ try {
     true,
   );
   await page.locator('#input').blur();
-  await page.locator('body').click({ position: { x: 200, y: 250 } });
+  // A neutral click on the machine description: a fixed point would land in
+  // the 216px rail, where a nav item would take focus and arrow keys.
+  await page.locator('#machine-description').click();
   await page.keyboard.press('r');
   await page.keyboard.press('ArrowRight');
   assert.equal(await page.locator('#progress').inputValue(), '1');
@@ -154,15 +164,30 @@ try {
   await page.locator('#view-editor').waitFor();
   await page.locator('[data-route=bench]').click();
   checks.push('Keyboard field priority, stepping, reset and editor');
-  assert.equal(
-    await page.locator('#sheet').evaluate((element) => getComputedStyle(element).backdropFilter),
-    'none',
-  );
-  checks.push('Solid surfaces without background effects');
-  await page.screenshot({ path: resolve(artifacts, 'tauri-light.png') });
-  await page.locator('#theme-toggle').click();
-  await page.locator('html[data-theme=dark]').waitFor();
-  await page.screenshot({ path: resolve(artifacts, 'tauri-dark.png') });
+  for (const plate of ['#sheet', '#dock'])
+    assert.equal(
+      await page.locator(plate).evaluate((element) => getComputedStyle(element).backdropFilter),
+      'none',
+      `${plate} is an opaque content plate`,
+    );
+  checks.push('Opaque content sheet and dock without background effects');
+  // The field is atmosphere: it stays on under reduced motion (as a still
+  // frame) and never takes input.
+  const background = await page.evaluate(() => ({
+    mode: document.documentElement.dataset.bg,
+    pointerEvents: getComputedStyle(document.getElementById('field')).pointerEvents,
+  }));
+  assert.ok(['webgl', 'static'].includes(background.mode), 'The field runs: ' + background.mode);
+  assert.equal(background.pointerEvents, 'none');
+  checks.push(`The ${background.mode} field stays on under reduced motion and takes no input`);
+  for (let i = 0; i < 2; i++) {
+    const theme = await page.locator('html').getAttribute('data-theme');
+    await page.screenshot({ path: resolve(artifacts, `tauri${runSuffix}-${theme}.png`) });
+    if (!i) {
+      await page.locator('#theme-toggle').click();
+      await page.locator(`html:not([data-theme=${theme}])`).waitFor();
+    }
+  }
   assert.deepEqual(errors, []);
   assert.deepEqual(external, []);
   const report = {
@@ -172,10 +197,13 @@ try {
     metrics: await page.locator('#debug').innerText(),
     url: page.url(),
   };
-  await writeFile(resolve(artifacts, 'native-ui-report.json'), JSON.stringify(report, null, 2));
+  await writeFile(
+    resolve(artifacts, `native-ui-report${runSuffix}.json`),
+    JSON.stringify(report, null, 2),
+  );
   console.log(JSON.stringify(report, null, 2));
 } catch (error) {
-  await page.screenshot({ path: resolve(artifacts, 'native-failure.png') });
+  await page.screenshot({ path: resolve(artifacts, `native-failure${runSuffix}.png`) });
   console.error(error, await page.locator('#toast').textContent());
   throw error;
 } finally {

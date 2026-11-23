@@ -4,7 +4,13 @@ smol project for visual learning
 
 An offline Mealy and Moore machine workbench for Windows. React and TypeScript own the interface; an independent Rust library owns parsing, simulation, conversion and graph editing. Tauri 2 supplies the desktop window, native file dialogs and local persistence.
 
-The interface uses opaque surfaces, local Nunito text and custom navigation icons. Light mode uses blue, red and white; dark mode uses dark grey, orange and lime. Page and control transitions respect reduced-motion preferences. Frame diagnostics stay on the device.
+The interface ("Night & Pearl", see [DESIGN.md](DESIGN.md)) is one workbench in two themes, inspired by Apple's Liquid Glass. It does not use Apple's material or fonts, or Sony's branding. **Night**, the default, is near-black with sage-charcoal cards and one soft pistachio accent with a green glow. **Pearl** is a luminous off-white with a PlayStation-style blue and black ink. Both themes share the same layout, shapes, type and motion. A glass title bar and a floating glass sidebar sit over a calm 3D field: jacks and patch cables for the loaded machine, drawn with hand-written WebGL2 and tinted for the active theme. The cursor acts as the field's key light, and the glass rims catch it. The field is atmosphere only. It never takes input, and the 2D diagram, tapes and trace remain the complete interface. Everything you read or edit sits on opaque plates. The live signal is pistachio on a charcoal plate in Night and blue on a pearl plate in Pearl. Text uses local Inter Variable. Large page titles use Newsreader, a local serif. Tape symbols and code use IBM Plex Mono.
+
+The theme button in the title bar switches themes with a slow wave that rolls out from the button for about 1.6 seconds. The sun/moon glyph changes with a springy bounce. Press the button again to roll the wave back; any other click or key ends it at once and still lands. When Patchbay starts, a short burst of colour plays and condenses into the active theme's signal while the workbench loads underneath. The first start of a version shows the full launch (about 2.2 seconds); later starts show a shorter one (under a second). The first key, click, wheel or touch skips it and still reaches its target. **Settings → Launch animation** turns it off.
+
+Every animation runs at the display's native refresh rate, detected for the monitor the window is on (for example 144 fps on a 144 Hz panel). Quality settings trade resolution, not frames. If the GPU falls behind, the field lowers its render scale before it drops frames. **Settings → Frame rate** offers _Match display_ (the default) and 60 or 30 fps power savers. Rendering pauses only while the window is hidden or minimised.
+
+Reduced motion freezes the field to a still frame and replaces the wave and the launch with short cross-fades. Low quality replaces the field with a static gradient. Reduced transparency, high contrast and **Settings → Window material** turn the field off and make every glass surface solid. On Windows 11 the frame behind the field is the desktop's Mica material; elsewhere it is opaque. Keys and playback steps are never delayed by animation. Frame diagnostics stay on the device.
 
 ## Run the Windows application
 
@@ -50,12 +56,14 @@ npm run desktop:debug
 npm run test:ui
 npm run test:appearance
 npm run test:session
+npm run test:launch
+npm run test:refresh
 npm run licenses
 npm run dist:windows
 npm run check:package -- --current-source
 ```
 
-The browser checks exercise graph and diagram renderers. Native checks use the real debug Tauri app and a separate test session directory; they need WebView2 and a Windows desktop session. `npm run check:bundle` audits the built theme tokens, text contrast, local font license and renderer size budgets. `npm run dist:windows` builds the locked release and NSIS installer, includes dependency notices, creates the portable ZIP, and verifies its source snapshot and hashes. `npm run package` is an alias for the same distribution pipeline.
+The browser checks exercise graph and diagram renderers. Native checks use the real debug Tauri app and a separate test session directory; they need WebView2 and a Windows desktop session. On Windows 11, run them twice: once as is (Mica frame) and once with `PATCHBAY_OPAQUE=1` (opaque window); see [verification](docs/verification.md#native-suites-in-both-window-modes). `npm run check:bundle` audits the built theme tokens and text contrast in both themes. Glass over the field is composited over the shader's luminance clamp, the static field and Mica; floating glass is composited over black and white. It also checks the six permitted backdrop blurs and their opaque fallbacks, and the inline launch stage. Other checks cover the field canvas rules, the local Inter, Newsreader and IBM Plex fonts and licences, the absence of colour literals outside `src/reference.css`, and the renderer size budgets. The appearance suite also measures the rendered pixels behind title bar and sidebar labels while the cursor light rests on them, and plays the theme wave. `npm run test:launch` checks the launch's first frames, skipping and variants. `npm run test:refresh` checks that the field, the frame clock and the wave run at the detected refresh rate. `npm run dist:windows` builds the locked release and NSIS installer, includes dependency notices, creates the portable ZIP, and verifies its source snapshot and hashes. `npm run package` is an alias for the same distribution pipeline.
 
 `npm run check:package` checks release integrity without launching the program. Add `-- --current-source` when validating a fresh build against this checkout; without it, later documentation or source edits do not invalidate an unchanged release's hashes. An integrity check does not prove installation, startup, persistence, upgrade or uninstall behavior. Run those lifecycle checks on the resulting installer before sharing a release.
 
@@ -73,7 +81,7 @@ Trace shows the current state, accumulated output, next transition, playback con
 
 **Input alphabet** accepts whitespace-separated tokens or a JSON array. Digits, Unicode and whole tokens work: `00 01 10 11` represents two binary variables; `coin push` represents named events. Incomplete drawings can be saved. **Run machine** explains missing transitions and outputs before applying a drawing. **Fill missing self-loops** explicitly completes a table. Undo/redo retains 50 edits, including **New machine**.
 
-**Save draft** writes a `.patchbay` graph file with positions and unfinished edits. **Open** accepts graph files or text definitions. **Text definition**, or **Text** on the Bench, opens the manual editor. Valid changes preview after 250 ms. Unfinished text and graph drafts recover across restarts while the last valid machine remains runnable. Local sessions are stored at `%APPDATA%\io.patchbay.studio\session.json`; project files are saved only where selected in a native dialog.
+**Save draft** writes a `.patchbay` graph file with positions and unfinished edits. **Open** accepts graph files or text definitions. **Text definition** in the sidebar, or **Text** on the Bench, opens the manual editor. At phone widths the sidebar becomes a bottom tab bar, and Trace and Text open from the Bench. Valid changes preview after 250 ms. Unfinished text and graph drafts recover across restarts while the last valid machine remains runnable. Local sessions are stored at `%APPDATA%\io.patchbay.studio\session.json`; project files are saved only where selected in a native dialog.
 
 Mealy writes on each transition. Moore writes from the destination state and includes the start state's output by default; Settings can omit it. These transducers have no accepting states: the end of input halts the run. Moore-to-Mealy conversion drops the initial output; Mealy-to-Moore splits states and adds an initial `0`.
 
@@ -107,20 +115,20 @@ Input is limited to 4,096 UTF-16 units and project text/files to 1 MiB UTF-8. Th
 
 ## Keyboard
 
-| Key | Action |
-| --- | --- |
-| Space | Play / pause |
-| Right / Left | Step / step back |
-| R | Reset |
-| B | Replay diagram build |
-| E | Open graphical editor |
-| Ctrl+Z / Ctrl+Shift+Z | Undo / redo in the editor |
-| Delete | Delete the selected state or arrow |
-| F | Focus mode |
-| Q | Cycle diagram quality |
-| ? | Learn view |
-| Escape | Close an open drawer |
+| Key                   | Action                             |
+| --------------------- | ---------------------------------- |
+| Space                 | Play / pause                       |
+| Right / Left          | Step / step back                   |
+| R                     | Reset                              |
+| B                     | Replay diagram build               |
+| E                     | Open graphical editor              |
+| Ctrl+Z / Ctrl+Shift+Z | Undo / redo in the editor          |
+| Delete                | Delete the selected state or arrow |
+| F                     | Focus mode                         |
+| Q                     | Cycle diagram quality              |
+| ?                     | Learn view                         |
+| Escape                | Close an open drawer               |
 
-Editing inputs retain normal keyboard behavior. States expose transition labels and a polite live region describes playback. Settings provide reduced motion, high contrast and local frame diagnostics. Hidden windows pause the shared animation clock. Diagnostic readings describe the current session and do not guarantee a particular refresh rate.
+Editing inputs retain normal keyboard behavior. Theme changes are the one deliberate exception: Enter or Space on the theme button plays the wave, like a click. States expose transition labels and a polite live region describes playback. Settings provide theme, window material, reduced motion, high contrast, launch animation, rendering quality, frame rate and local frame diagnostics. The diagnostics show the detected display rate, the measured frame rate and the field's mode, render scale, frame rate and the reason for any resolution step. High contrast and reduced transparency use opaque surfaces only. Hidden windows pause the shared animation clock, which stops the field too. Diagnostic readings describe the current session and do not guarantee a particular refresh rate.
 
-Nunito and its OFL text are bundled locally. Patchbay is MIT licensed. Release notices include the locked runtime packages and a conservative Rust dependency inventory; the shared Microsoft WebView2 runtime is installed separately.
+Inter Variable, Newsreader and IBM Plex Mono are bundled locally with their OFL texts (`licenses/Inter-OFL.txt`, `licenses/Newsreader-OFL.txt`, `licenses/IBM-Plex-OFL.txt`). Patchbay is MIT licensed. Release notices include the locked runtime packages and a conservative Rust dependency inventory; the shared Microsoft WebView2 runtime is installed separately.

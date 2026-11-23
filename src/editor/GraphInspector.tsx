@@ -46,8 +46,9 @@ export function StateInspector({
   };
   return (
     <section id="graph-state-panel" className="graph-inspector-section">
-      <span className="graph-eyebrow">State</span>
-      <h2 id="graph-state-title">{state.name}</h2>
+      <h2 id="graph-state-title">
+        State <span className="graph-title-id">{state.name}</span>
+      </h2>
       <form
         id="graph-state-form"
         className="graph-form"
@@ -137,7 +138,6 @@ export function TransitionInspector({
   };
   return (
     <section id="graph-transition-panel" className="graph-inspector-section">
-      <span className="graph-eyebrow">Transition</span>
       <h2 id="graph-transition-title">{editor.id ? 'Edit transition' : 'Add transition'}</h2>
       <form
         id="graph-transition-form"
@@ -239,7 +239,6 @@ export function TransitionInspector({
 export function EmptyInspector() {
   return (
     <section id="graph-inspector-empty" className="graph-inspector-section graph-help">
-      <span className="graph-eyebrow">Inspector</span>
       <h2>Make a connection</h2>
       <p>Select a state to rename it, choose the start state or change its output.</p>
       <p>
@@ -269,7 +268,6 @@ export function AlphabetInspector({ draft, busy, submitEdit }: AlphabetInspector
   };
   return (
     <section className="graph-inspector-section graph-alphabet-section">
-      <span className="graph-eyebrow">Machine</span>
       <h2>Input alphabet</h2>
       <form
         id="graph-alphabet-form"

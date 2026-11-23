@@ -7,6 +7,7 @@ fn main() {
             "open_project",
             "save_project",
             "save_screenshot",
+            "display_refresh",
         ]));
     tauri_build::try_build(attributes).expect("Tauri build configuration is invalid");
 }

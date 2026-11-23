@@ -18,8 +18,11 @@
         "height": 1000,
         "minWidth": 640,
         "minHeight": 480,
+        "create": false,
         "decorations": false,
-        "backgroundColor": "#edf2f9",
+        "shadow": true,
+        "transparent": false,
+        "backgroundColor": "#0C0D0D",
         "dragDropEnabled": false
       }
     ],
@@ -38,7 +41,9 @@
     "license": "MIT",
     "licenseFile": "../LICENSE",
     "resources": {
-      "../public/licenses/Nunito-OFL.txt": "licenses/Nunito-OFL.txt",
+      "../public/licenses/Inter-OFL.txt": "licenses/Inter-OFL.txt",
+      "../public/licenses/IBM-Plex-OFL.txt": "licenses/IBM-Plex-OFL.txt",
+      "../public/licenses/Newsreader-OFL.txt": "licenses/Newsreader-OFL.txt",
       "../LICENSE": "PATCHBAY-LICENSE.txt"
     },
     "windows": {

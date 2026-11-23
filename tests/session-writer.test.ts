@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SessionWriter } from '../src/app/session-writer';
 import { initialState, WorkbenchStore } from '../src/app/state';
-import type { SavedSession } from '../src/domain/contracts';
+import { sessionSnapshot } from '../src/app/use-workbench';
+import type { Evaluation, SavedSession } from '../src/domain/contracts';
 
 const sample = (input: string): SavedSession => ({
   ...initialState.preferences,
@@ -10,6 +11,7 @@ const sample = (input: string): SavedSession => ({
   manualDraft: null,
   route: 'bench',
   graph: null,
+  launchSeen: null,
 });
 function deferred() {
   let resolve!: () => void;
@@ -49,6 +51,21 @@ describe('durable session writer', () => {
     expect(write).toHaveBeenCalledTimes(2);
     expect(write.mock.calls[1][0].input).toBe('0');
     writer.dispose();
+  });
+  it('persists the launch and frame-rate preferences with the seen version', () => {
+    expect(initialState.preferences).toMatchObject({ launchAnimation: true, frameRate: 'match' });
+    const evaluation = { source: sample('').source } as Evaluation;
+    const snapshot = sessionSnapshot({
+      ...initialState,
+      evaluation,
+      launchSeen: '2.0.0',
+      preferences: { ...initialState.preferences, launchAnimation: false, frameRate: '60' },
+    });
+    expect(snapshot).toMatchObject({
+      launchAnimation: false,
+      frameRate: '60',
+      launchSeen: '2.0.0',
+    });
   });
   it('exposes the latest committed draft synchronously before a React render', () => {
     const store = new WorkbenchStore(),

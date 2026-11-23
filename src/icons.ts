@@ -1,5 +1,4 @@
 const paths: Record<string, string> = {
-  theme: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 1 0 0 18Z" fill="currentColor"/>',
   bench:
     '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path class="a" d="M7.5 12.4C8.8 4.6 15.2 4.6 16.5 12.4m-1.7-1.7 1.7 1.7 1-2.2"/>',
   machines:

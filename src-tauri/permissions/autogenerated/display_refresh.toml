@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-display-refresh"
+description = "Enables the display_refresh command without any pre-configured scope."
+commands.allow = ["display_refresh"]
+
+[[permission]]
+identifier = "deny-display-refresh"
+description = "Denies the display_refresh command without any pre-configured scope."
+commands.deny = ["display_refresh"]

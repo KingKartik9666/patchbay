@@ -31,10 +31,18 @@ const clock = new ManualClock({
   quality: 'medium',
   glass: 'baked',
   refreshHz: 120,
+  displayHz: 120,
+  targetFps: 120,
+  measuredFps: 120,
+  refreshNote: null,
   reducedMotion: false,
   focusMode: false,
   boardRate: 30,
   glowPasses: 2,
+  displayHz: 120,
+  targetFps: 120,
+  measuredFps: 120,
+  refreshNote: null,
 });
 const definition = (count: number, kind: 'mealy' | 'moore'): MachineDef => ({
   states: Array.from({ length: count }, (_, i) => `S${i}`),

@@ -109,6 +109,87 @@ const drag = async (target, dx, dy, cancel) => {
   if (cancel) await cancel();
   await page.mouse.up();
 };
+// The stage opens fitted and centred on the machine, and nothing it draws is clipped:
+// every state, every "+" handle and the "start" label lie inside the scroller's visible
+// client area, and the states' union is centred within 24px (DESIGN.md, Layout: Editor).
+const fitReport = (target) =>
+  target.evaluate(() => {
+    const scroll = document.querySelector('#graph-scroll'),
+      box = scroll.getBoundingClientRect();
+    const view = {
+      left: box.left,
+      top: box.top,
+      right: box.left + scroll.clientWidth,
+      bottom: box.top + scroll.clientHeight,
+    };
+    const nodes = [...document.querySelectorAll('.graph-node')].map((node) =>
+      node.getBoundingClientRect(),
+    );
+    const union = nodes.reduce(
+      (all, rect) => ({
+        left: Math.min(all.left, rect.left),
+        top: Math.min(all.top, rect.top),
+        right: Math.max(all.right, rect.right),
+        bottom: Math.max(all.bottom, rect.bottom),
+      }),
+      { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity },
+    );
+    const clipped = [
+      ...document.querySelectorAll(
+        '.graph-node, .graph-connect-handle, .graph-node.is-start .graph-node-start',
+      ),
+    ]
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return (
+          rect.left < view.left - 0.5 ||
+          rect.top < view.top - 0.5 ||
+          rect.right > view.right + 0.5 ||
+          rect.bottom > view.bottom + 0.5
+        );
+      })
+      .map(
+        (element) =>
+          `${element.className} ${element.dataset.stateId ?? element.parentElement?.dataset.stateId}`,
+      );
+    return {
+      nodes: nodes.length,
+      dx: (union.left + union.right) / 2 - (view.left + view.right) / 2,
+      dy: (union.top + union.bottom) / 2 - (view.top + view.bottom) / 2,
+      clipped,
+    };
+  });
+const assertFitted = async (target, label) => {
+  const report = await fitReport(target);
+  assert.ok(report.nodes > 0, label + ': the fixture has states');
+  assert.ok(
+    Math.hypot(report.dx, report.dy) <= 24,
+    `${label}: the machine opens centred on the stage (${report.dx.toFixed(1)}, ${report.dy.toFixed(1)})`,
+  );
+  assert.deepEqual(report.clipped, [], label + ': no state, handle or start label is clipped');
+};
+// The automatic choice fits its select: text + padding <= clientWidth, and the row never
+// overflows its card.
+const selectReport = (target) =>
+  target.evaluate(() => {
+    const select = document.querySelector('#graph-draw-input'),
+      style = getComputedStyle(select),
+      context = document.createElement('canvas').getContext('2d');
+    context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    // Inter is set with -0.009em tracking; measure the text exactly as the select draws it.
+    context.letterSpacing = style.letterSpacing;
+    const text = select.options[select.selectedIndex].text,
+      row = document.querySelector('.graph-drawing-defaults');
+    return {
+      text,
+      needed:
+        context.measureText(text).width +
+        parseFloat(style.paddingLeft) +
+        parseFloat(style.paddingRight),
+      width: select.clientWidth,
+      rowOverflow: row.scrollWidth - row.clientWidth,
+    };
+  });
 const inkHash = async () =>
   createHash('sha256')
     .update(await page.locator('#graph-ink').evaluate((canvas) => canvas.toDataURL()))
@@ -116,6 +197,8 @@ const inkHash = async () =>
 try {
   await page.goto(`http://127.0.0.1:${server.address().port}`);
   await page.locator('#graph-ink').waitFor();
+  await page.waitForTimeout(60);
+  await assertFitted(page, '1440x850 on open');
   await page.locator('#graph-fit').click();
   await page.waitForTimeout(120);
   assert.equal(
@@ -193,6 +276,33 @@ try {
       output: '0',
     },
     'Keyboard drawing uses the next unused input and supports self-loops',
+  );
+  // The "start" label sits under the start arrow's tail, left of the node, clear of the
+  // first self-loop (drawn above the node) and of every visible transition label.
+  const startLabel = await page.evaluate(() => {
+    const node = document.querySelector('.graph-node.is-start'),
+      label = node.querySelector('.graph-node-start').getBoundingClientRect(),
+      own = node.getBoundingClientRect();
+    const overlaps = [...document.querySelectorAll('.graph-edge-label')]
+      .filter((edge) => getComputedStyle(edge).visibility === 'visible')
+      .map((edge) => edge.getBoundingClientRect())
+      .filter(
+        (edge) =>
+          edge.left < label.right &&
+          label.left < edge.right &&
+          edge.top < label.bottom &&
+          label.top < edge.bottom,
+      ).length;
+    return {
+      overlaps,
+      leftOfNode: label.right <= own.left,
+      belowCentre: label.top >= own.top + own.height / 2 - 1,
+    };
+  });
+  assert.deepEqual(
+    startLabel,
+    { overlaps: 0, leftOfNode: true, belowCentre: true },
+    'The start label sits under the arrow tail, clear of the self-loop and its label',
   );
   const beforeUsed = (await snapshot()).edits.length;
   await page.locator('#graph-draw-input').selectOption('a');
@@ -472,13 +582,75 @@ try {
       dimensions.height <= dimensions.viewportHeight * 2 + 2,
   );
   assert.deepEqual(errors, []);
+
+  // A fresh editor at the sizes the defects were seen at: fitted on open and nothing clipped,
+  // and the drawing-defaults select never truncates its automatic choice.
+  const fresh = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: 'reduce',
+  });
+  const freshErrors = [];
+  fresh.on('pageerror', (error) => freshErrors.push(error.message));
+  // The harness loads no tokens, so it would measure a fallback face. Serve the app's own
+  // Inter Variable and set --display, so the select is measured in the face it ships with.
+  const inter = await readFile(resolve(root, 'src/fonts/inter-latin-wght-normal.woff2'));
+  await fresh.route('**/__fonts/inter.woff2', (route) =>
+    route.fulfill({ body: inter, contentType: 'font/woff2' }),
+  );
+  const withAppFace = async () => {
+    await fresh.addStyleTag({
+      content:
+        "@font-face{font-family:'Inter Variable';font-weight:100 900;src:url('/__fonts/inter.woff2') format('woff2')}" +
+        ":root{--display:'Inter Variable',sans-serif}",
+    });
+    await fresh.evaluate(() => document.fonts.load("500 15px 'Inter Variable'"));
+    assert.ok(
+      await fresh.evaluate(() => document.fonts.check("500 15px 'Inter Variable'")),
+      'Inter Variable is loaded for the select measurement',
+    );
+  };
+  const selects = {};
+  try {
+    await fresh.goto(`http://127.0.0.1:${server.address().port}`);
+    await fresh.locator('#graph-ink').waitFor();
+    await withAppFace();
+    await fresh.waitForTimeout(60);
+    await assertFitted(fresh, '1440x900 on open');
+    for (const [width, height] of [
+      [1440, 900],
+      [960, 900],
+      [390, 844],
+      [360, 800],
+    ]) {
+      await fresh.setViewportSize({ width, height });
+      await fresh.waitForTimeout(60);
+      const report = await selectReport(fresh);
+      selects[width] = report;
+      assert.equal(report.text, 'Auto · next unused');
+      assert.ok(
+        report.needed <= report.width + 1,
+        `${width}px: the select shows "${report.text}" in full (${report.needed.toFixed(1)} > ${report.width})`,
+      );
+      assert.ok(report.rowOverflow <= 0, `${width}px: the New arrows row does not overflow`);
+    }
+    await fresh.setViewportSize({ width: 390, height: 844 });
+    await fresh.reload();
+    await fresh.locator('#graph-ink').waitFor();
+    await withAppFace();
+    await fresh.waitForTimeout(60);
+    await assertFitted(fresh, '390x844 on open');
+    assert.deepEqual(freshErrors, []);
+  } finally {
+    await fresh.close();
+  }
   console.log(
     JSON.stringify(
       {
         passed:
-          'React graph direct drawing/defaults/determinism/cancellation/keyboard/rollback/idle/remount/mobile fixture',
+          'React graph direct drawing/defaults/determinism/cancellation/keyboard/rollback/idle/remount/mobile fixture; fitted on open, unclipped handles and start label, untruncated drawing select',
         edits: (await snapshot()).edits.length,
         dimensions,
+        selects,
         errors,
       },
       null,

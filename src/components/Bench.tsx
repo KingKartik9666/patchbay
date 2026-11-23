@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { Workbench } from '../app/use-workbench';
 import type { FrameClock } from '../rendering/frame-clock';
 import { StateDiagram } from '../rendering/StateDiagram';
@@ -12,25 +12,68 @@ export function outputTokens(player: Playback, cursor: number): string[] {
     ...player.trace.steps.slice(0, cursor).map((step) => step.out),
   ];
 }
+const TAPE_WINDOW = 18,
+  TAPE_OVERFLOW = 2;
 function Tape({
   symbols,
   cursor,
   output = false,
+  complete = false,
 }: {
   symbols: string[];
   cursor: number;
   output?: boolean;
+  /** The output tape of a finished run; CSS plays one finite light sweep. */
+  complete?: boolean;
 }) {
-  const start = Math.max(0, Math.min(Math.max(0, symbols.length - 18), cursor - 6));
+  const start = Math.max(0, Math.min(Math.max(0, symbols.length - TAPE_WINDOW), cursor - 6)),
+    end = start + TAPE_WINDOW;
+  // Up to two symbols past each end of the readable window sit under frosted
+  // stubs, so the strip visibly continues while only the window is legible.
+  const leading = symbols.slice(Math.max(0, start - TAPE_OVERFLOW), start),
+    trailing = symbols.slice(end, end + TAPE_OVERFLOW);
+  const windowRef = useRef<HTMLDivElement>(null);
+  // Narrow windows show fewer than 18 cells, so keep the current cell and one
+  // cell of lookahead inside the clipped window instead of past its edge.
+  useLayoutEffect(() => {
+    const view = windowRef.current;
+    if (!view) return;
+    const follow = () => {
+      const current = view.querySelector<HTMLElement>('.tape-cell.current');
+      if (!current) {
+        view.scrollLeft = 0;
+        return;
+      }
+      const box = view.getBoundingClientRect(),
+        cell = current.getBoundingClientRect();
+      const left = cell.left - box.left + view.scrollLeft,
+        width = cell.width;
+      if (left + 2 * width > view.scrollLeft + view.clientWidth)
+        view.scrollLeft = left + 2 * width - view.clientWidth;
+      else if (left - width < view.scrollLeft) view.scrollLeft = Math.max(0, left - width);
+    };
+    follow();
+    if (typeof ResizeObserver !== 'function') return;
+    const observer = new ResizeObserver(follow);
+    observer.observe(view);
+    return () => observer.disconnect();
+  }, [symbols, cursor, output]);
   return (
-    <div className="tape-window">
-      <div className={`tape ${output ? 'output-tape' : ''}`}>
-        {start > 0 && (
-          <span className="tape-ellipsis" aria-hidden="true">
-            …
+    <div ref={windowRef} className="tape-window">
+      <div
+        className={`tape ${output ? 'output-tape' : ''}`}
+        data-complete={output && complete ? '' : undefined}
+      >
+        {leading.length > 0 && (
+          <span className="tape-overflow leading" aria-hidden="true">
+            {leading.map((symbol, index) => (
+              <span key={start - leading.length + index} className="tape-cell">
+                {symbol}
+              </span>
+            ))}
           </span>
         )}
-        {symbols.slice(start, start + 18).map((symbol, index) => (
+        {symbols.slice(start, end).map((symbol, index) => (
           <span
             key={start + index}
             className={`tape-cell ${start + index === cursor ? 'current' : ''} ${start + index < cursor ? 'read' : ''}`}
@@ -42,9 +85,13 @@ function Tape({
         {output && cursor === symbols.length && (
           <span className="tape-cell current empty" aria-hidden="true" />
         )}
-        {start + 18 < symbols.length && (
-          <span className="tape-ellipsis" aria-hidden="true">
-            …
+        {trailing.length > 0 && (
+          <span className="tape-overflow trailing" aria-hidden="true">
+            {trailing.map((symbol, index) => (
+              <span key={end + index} className="tape-cell">
+                {symbol}
+              </span>
+            ))}
           </span>
         )}
       </div>
@@ -88,12 +135,13 @@ export function Transport({
       <button
         id={`${prefix}play`}
         className="play-button"
+        data-playing={playback.playing ? '' : undefined}
         disabled={invalid || !player.trace.steps.length}
         onClick={() => player.toggle()}
       >
         <Icon name={playback.playing ? 'pause' : 'play'} />
         <span>{playback.playing ? 'Pause' : 'Play'}</span>
-        {!trace && <kbd>Space</kbd>}
+        {!trace && <kbd className="kbd-chip">Space</kbd>}
       </button>
       <button
         id={`${prefix}step`}
@@ -162,23 +210,20 @@ export function Bench({
   const active = playback.cursor ? player.trace.steps[playback.cursor - 1].to : machine.start;
   const output = outputTokens(player, playback.cursor),
     [building, setBuilding] = useState(false);
+  const total = player.trace.steps.length,
+    complete = total > 0 && playback.cursor === total && !playback.playing;
   return (
     <section id="view-bench" className="view" aria-label="Bench">
       <section id="sheet" className="sheet">
         <header className="sheet-header">
           <div className="machine-heading">
-            <span className="machine-emblem">
-              <Icon name="machines" />
-            </span>
-            <div>
-              <h1 id="machine-title">{preset?.name ?? 'Custom machine'}</h1>
-              <p id="machine-description">
-                {preset?.description ?? 'Your states. Your inputs. Your logic.'}
-              </p>
-            </div>
+            <h1 id="machine-title">{preset?.name ?? 'Custom machine'}</h1>
+            <p id="machine-description">
+              {preset?.description ?? 'Your states. Your inputs. Your logic.'}
+            </p>
           </div>
           <div className="sheet-actions">
-            <div className="kind-switch" aria-label="Machine type">
+            <div className="kind-switch" data-kind={kind} role="group" aria-label="Machine type">
               <button
                 id="mode-mealy"
                 aria-pressed={kind === 'mealy'}
@@ -203,7 +248,7 @@ export function Bench({
             <button id="replay-build" className="quiet-button" onClick={onReplay}>
               <Icon name="reset" />
               <span>Replay build</span>
-              <kbd>B</kbd>
+              <kbd className="kbd-chip">B</kbd>
             </button>
           </div>
         </header>
@@ -239,21 +284,23 @@ export function Bench({
             </button>
           </div>
         </div>
-        <StateDiagram
-          machine={machine}
-          clock={clock}
-          cursor={playback.cursor}
-          activeState={active}
-          travelRef={player.travel}
-          replayKey={replayKey}
-          theme={state.preferences.theme}
-          onBuildingChange={setBuilding}
-          onInspect={(id) =>
-            workbench.message(
-              `State ${id}. ${machine.alphabet.map((symbol) => `On ${symbol}, go to ${machine.delta[id][symbol]}.`).join(' ')}`,
-            )
-          }
-        />
+        <div className="patch-panel">
+          <StateDiagram
+            machine={machine}
+            clock={clock}
+            cursor={playback.cursor}
+            activeState={active}
+            travelRef={player.travel}
+            replayKey={replayKey}
+            theme={state.preferences.theme}
+            onBuildingChange={setBuilding}
+            onInspect={(id) =>
+              workbench.message(
+                `State ${id}. ${machine.alphabet.map((symbol) => `On ${symbol}, go to ${machine.delta[id][symbol]}.`).join(' ')}`,
+              )
+            }
+          />
+        </div>
         <footer className="diagram-footer">
           <div className="diagram-counts">
             <span>
@@ -268,12 +315,22 @@ export function Bench({
             </span>
           </div>
           <span className="active-chip">
-            <i />
             Current state <b id="active-state">{active}</b>
           </span>
+          <button
+            id="convert"
+            className="text-button"
+            disabled={state.busy}
+            onClick={() => {
+              void workbench.convert();
+            }}
+          >
+            <Icon name="convert" />
+            <span>Convert to {kind === 'mealy' ? 'Moore' : 'Mealy'}</span>
+          </button>
         </footer>
       </section>
-      <section id="dock" className="dock glass" aria-label="Input, output and playback">
+      <section id="dock" className="dock" aria-label="Input, output and playback">
         <div className="dock-top">
           <InputForm
             key={state.input}
@@ -282,10 +339,15 @@ export function Bench({
               void workbench.loadInput(value);
             }}
           />
-          <span id="tape-note">
+          <span id="output-explanation">
             {kind === 'mealy'
-              ? 'One output for every input.'
-              : 'State outputs, including the initial state.'}
+              ? 'Mealy outputs belong to transitions.'
+              : 'Moore outputs belong to states.'}{' '}
+            <span id="tape-note">
+              {player.trace.initialOut === undefined
+                ? 'One output per input.'
+                : 'One output per input, plus the initial output.'}
+            </span>
           </span>
           <button
             id="trace-shortcut"
@@ -311,7 +373,10 @@ export function Bench({
           <div className="tape-row">
             <div className="tape-label">
               <span>Input</span>
-              <small id="input-count">{evaluation.inputSymbols.length} symbols</small>
+              <small id="input-count">
+                {evaluation.inputSymbols.length}{' '}
+                {evaluation.inputSymbols.length === 1 ? 'symbol' : 'symbols'}
+              </small>
             </div>
             <Tape symbols={evaluation.inputSymbols} cursor={playback.cursor} />
           </div>
@@ -320,7 +385,7 @@ export function Bench({
               <span>Output</span>
               <small id="output-count">{output.length} written</small>
             </div>
-            <Tape symbols={output} cursor={output.length} output />
+            <Tape symbols={output} cursor={output.length} output complete={complete} />
           </div>
         </div>
         <div className="transport">
@@ -332,19 +397,21 @@ export function Bench({
                   ? 'Check the input'
                   : playback.playing
                     ? 'Following the signal'
-                    : playback.cursor === player.trace.steps.length
+                    : complete
                       ? 'Run complete'
-                      : 'Ready when you are'}
+                      : total
+                        ? 'Ready when you are'
+                        : 'Load an input to run'}
               </span>
               <span id="progress-label">
-                {playback.cursor} / {player.trace.steps.length}
+                {playback.cursor} / {total}
               </span>
             </label>
             <input
               id="progress"
               type="range"
               min={0}
-              max={player.trace.steps.length}
+              max={total}
               value={playback.cursor}
               step={1}
               disabled={invalid}
@@ -368,24 +435,6 @@ export function Bench({
           </div>
         </div>
       </section>
-      <footer className="bench-footer">
-        <span id="output-explanation">
-          {kind === 'mealy'
-            ? 'Mealy outputs belong to transitions.'
-            : 'Moore outputs belong to states.'}
-        </span>
-        <button
-          id="convert"
-          className="text-button"
-          disabled={state.busy}
-          onClick={() => {
-            void workbench.convert();
-          }}
-        >
-          <Icon name="convert" />
-          <span>Convert to {kind === 'mealy' ? 'Moore' : 'Mealy'}</span>
-        </button>
-      </footer>
     </section>
   );
 }

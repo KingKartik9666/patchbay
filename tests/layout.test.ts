@@ -168,6 +168,20 @@ describe('diagram layout', () => {
     }
   });
 
+  // The start arrow (tail at x - r - 52) and its "start" label (x - r - 60) must sit inside
+  // the plate with room for its inset and radius, from a phone to a 2560px window.
+  it.each(presets)('$id: never clips the start arrow or its label', (preset) => {
+    const machine = machineFrom(preset.source);
+    for (const w of [300, 342, 390, 720, 1280, 2560])
+      for (const h of [240, 300, 440, 900]) {
+        const start = buildDiagram(machine, { w, h }).nodes.find(
+          (node) => node.id === machine.start,
+        )!;
+        expect(start.x - start.r - 60, `label at ${w}x${h}`).toBeGreaterThanOrEqual(12);
+        expect(start.x - start.r - 52, `arrow tail at ${w}x${h}`).toBeGreaterThanOrEqual(20);
+      }
+  });
+
   it('preserves readable column spacing for a ten-state chain on a narrow viewport', () => {
     const source = [
       'type moore',

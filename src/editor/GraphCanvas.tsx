@@ -13,8 +13,9 @@ import {
 import type { GraphDraft, GraphTransition } from '../domain/contracts';
 import type { FrameClock } from '../rendering/frame-clock';
 import { graphCurves, STATE_RADIUS, type Point } from './geometry';
-import { drawGraphInk, type InkSnapshot } from './ink';
+import { drawGraphInk, INK_FALLBACK, type InkSnapshot } from './ink';
 import {
+  contentBounds,
   fitCamera,
   graphBounds,
   layoutViewport,
@@ -77,8 +78,11 @@ export function GraphCanvas(props: GraphCanvasProps) {
     programmaticScroll = useRef<Point | null>(null);
   const committingRef = useRef(false),
     mountedRef = useRef(false);
+  // The state ids seen by the last fit check; null until the stage has a real size.
+  const fittedIdsRef = useRef<ReadonlySet<string> | null>(null);
   const baseCurves = useMemo(() => graphCurves(draft), [draft]);
   const bounds = useMemo(() => graphBounds(draft, baseCurves), [draft, baseCurves]);
+  const content = useMemo(() => contentBounds(draft, baseCurves), [draft, baseCurves]);
   const displayDraft = useMemo(
     () =>
       preview
@@ -165,6 +169,28 @@ export function GraphCanvas(props: GraphCanvasProps) {
     cancelGesture();
   }, [tool, resetToken, cancelGesture]);
 
+  // Measure before the first paint, so the fit below lands in the same frame.
+  useLayoutEffect(() => {
+    const scroll = scrollRef.current;
+    if (scroll?.clientWidth && scroll.clientHeight)
+      setSize({ width: scroll.clientWidth, height: scroll.clientHeight });
+  }, []);
+  // The stage opens fitted and centred on the machine, and refits when a different machine
+  // arrives: the first real size, a draft whose state ids share none with the previous
+  // draft's, or a draft that goes from empty to non-empty. Ordinary edits (adding, moving,
+  // renaming or deleting states) always keep an id in common and never move the camera.
+  useLayoutEffect(() => {
+    if (size.width <= 1 || size.height <= 1) return;
+    const ids = new Set(draft.states.map((state) => state.id));
+    const previous = fittedIdsRef.current;
+    fittedIdsRef.current = ids;
+    const replaced =
+      !previous ||
+      (ids.size > 0 && (previous.size === 0 || ![...ids].some((id) => previous.has(id))));
+    if (replaced && !gestureRef.current && !committingRef.current)
+      setCamera(fitCamera(content, size));
+  }, [draft.states, content, size]);
+
   useEffect(() => {
     const scroll = scrollRef.current,
       host = hostRef.current,
@@ -183,26 +209,14 @@ export function GraphCanvas(props: GraphCanvasProps) {
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(scroll);
-    const themeObserver = new MutationObserver(() => {
-      dirtyRef.current = true;
-    });
-    for (
-      let ancestor: HTMLElement | null = host.parentElement;
-      ancestor;
-      ancestor = ancestor.parentElement
-    )
-      themeObserver.observe(ancestor, {
-        attributes: true,
-        attributeFilter: ['class', 'style', 'data-theme'],
-      });
     const context = canvas.getContext('2d', { alpha: true });
-    const unsubscribe = clock.subscribe((_dt, signals) => {
+    const draw = (quality: typeof clock.signals.quality) => {
       if (!context || !host.getClientRects().length || host.closest('[hidden]')) return;
       const snapshot = snapshotRef.current,
         currentLayout = layoutRef.current;
       const dpr = Math.min(
         window.devicePixelRatio || 1,
-        signals.quality === 'high' ? 2 : signals.quality === 'medium' ? 1.5 : 1,
+        quality === 'high' ? 2 : quality === 'medium' ? 1.5 : 1,
       );
       const pixelWidth = Math.max(1, Math.ceil(snapshot.size.width * dpr)),
         pixelHeight = Math.max(1, Math.ceil(snapshot.size.height * dpr));
@@ -218,15 +232,36 @@ export function GraphCanvas(props: GraphCanvasProps) {
         snapshot,
         dpr,
         {
-          copper: style.getPropertyValue('--copper').trim() || '#e0a458',
-          mint: style.getPropertyValue('--mint').trim() || '#7ce3c3',
-          line: style.getPropertyValue('--line').trim() || 'rgba(234,242,236,.13)',
+          ink: style.getPropertyValue('--panel-ink').trim() || INK_FALLBACK.ink,
+          signal: style.getPropertyValue('--panel-signal').trim() || INK_FALLBACK.signal,
+          line: style.getPropertyValue('--panel-line').trim() || INK_FALLBACK.line,
         },
         currentLayout.left + scroll.scrollLeft / snapshot.camera.zoom,
         currentLayout.top + scroll.scrollTop / snapshot.camera.zoom,
       );
       dirtyRef.current = false;
+    };
+    // A theme or contrast change repaints synchronously (a microtask after the attribute
+    // moves), so a View Transition's new snapshot already carries the new plate ink.
+    const themeObserver = new MutationObserver((records) => {
+      dirtyRef.current = true;
+      if (
+        records.some(
+          (record) => record.attributeName === 'data-theme' || record.attributeName === 'class',
+        )
+      )
+        draw(clock.signals.quality);
     });
+    for (
+      let ancestor: HTMLElement | null = host.parentElement;
+      ancestor;
+      ancestor = ancestor.parentElement
+    )
+      themeObserver.observe(ancestor, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme'],
+      });
+    const unsubscribe = clock.subscribe((_dt, signals) => draw(signals.quality));
     const wheel = (event: WheelEvent) => {
       if ((!event.ctrlKey && !event.metaKey) || gestureRef.current || committingRef.current) return;
       event.preventDefault();
@@ -458,7 +493,7 @@ export function GraphCanvas(props: GraphCanvasProps) {
             ? 'Click source → target, or drag between states. Use the same state for a self-loop.'
             : 'Drag a + handle to draw an arrow. Drag a state to move it. Double-click space to add one.'}
         </span>
-        <div className="graph-view-tools" role="group" aria-label="Graph view">
+        <div className="graph-view-tools fill-capsule" role="group" aria-label="Graph view">
           <button
             id="graph-zoom-out"
             type="button"
@@ -487,7 +522,7 @@ export function GraphCanvas(props: GraphCanvasProps) {
             type="button"
             title="Fit graph in view"
             disabled={interacting}
-            onClick={() => setCamera(fitCamera(bounds, size))}
+            onClick={() => setCamera(fitCamera(content, size))}
           >
             Fit
           </button>
@@ -627,9 +662,22 @@ export function GraphCanvas(props: GraphCanvasProps) {
           </div>
         </div>
         <div id="graph-empty" className="graph-empty" hidden={!!draft.states.length}>
-          <span className="graph-empty-mark" aria-hidden="true">
-            ○ → ○
-          </span>
+          <svg
+            className="graph-empty-mark"
+            viewBox="0 0 120 40"
+            width="120"
+            height="40"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="18" cy="20" r="14" />
+            <circle cx="102" cy="20" r="14" />
+            <path d="M38 20h42m-8-6 8 6-8 6" />
+          </svg>
           <strong>Draw your machine</strong>
           <span>Add a state, then connect states with labelled arrows.</span>
           <button

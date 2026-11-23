@@ -1,8 +1,16 @@
+/* The state diagram sits on the themed instrument plate (charcoal in Night, pearl in Pearl),
+   in the app and in the renderer harness, so it reads the --panel-* tokens directly. The
+   live signal is the theme's one hue: the active jack is a pistachio or PlayStation-blue
+   fill with an inverted label and a soft glow, backed by width. Per-step states switch
+   within a frame; only the build animates. */
 .diagram {
+  --diagram-fault: var(--panel-fault);
   position: relative;
   min-width: 0;
-  min-height: 220px;
+  min-height: 160px;
   overflow: hidden;
+  background: var(--panel);
+  color: var(--panel-text);
   contain: layout paint style;
 }
 .diagram-surface,
@@ -25,7 +33,7 @@
   overflow: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: var(--strong-line) var(--deep);
+  scrollbar-color: var(--panel-scroll) var(--panel);
 }
 .diagram-nodes {
   z-index: 2;
@@ -42,7 +50,7 @@
   pointer-events: none;
 }
 
-/* Transforms come from the layout model; visual states never move a node. */
+/* Jacks. Transforms come from the layout model; visual states never move a node. */
 .diagram-node {
   position: absolute;
   inset: 0 auto auto 0;
@@ -53,33 +61,36 @@
   width: var(--node-size);
   height: var(--node-size);
   padding: 0;
-  border: 1.65px solid var(--brand);
+  border: 2px solid var(--panel-ring);
   border-radius: 50%;
-  background: var(--deep);
-  color: var(--silk);
+  background: var(--panel-raised);
+  color: var(--panel-text);
   opacity: 0;
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: 17px;
+  font: 600 clamp(16px, calc(var(--node-size) * 0.35), 24px) / 1.1 var(--display);
+  letter-spacing: -0.01em;
   cursor: pointer;
   pointer-events: auto;
   transition:
-    transform 480ms var(--ease),
-    opacity 320ms var(--ease),
-    background-color 700ms var(--ease),
-    border-color 700ms var(--ease),
-    color 700ms var(--ease);
+    transform 280ms var(--ease),
+    opacity 200ms var(--ease);
 }
+/* Inner socket ring. */
+.diagram-node::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--panel-line);
+  border-radius: 50%;
+  pointer-events: none;
+}
+/* Reading and arriving halo: a 2px ring of light around the jack. */
 .diagram-node::before {
   content: '';
   position: absolute;
-  inset: -6px;
-  border: 2px solid var(--accent-line);
+  inset: -7px;
+  border: 2px solid var(--panel-signal);
   border-radius: 50%;
   opacity: 0;
-  transition:
-    opacity 480ms var(--ease),
-    border-color 700ms var(--ease);
   pointer-events: none;
 }
 .diagram-node.is-formed {
@@ -87,7 +98,7 @@
 }
 .diagram-node.is-forming {
   border-color: transparent;
-  animation: diagram-form 420ms var(--ease);
+  animation: diagram-form 240ms var(--ease);
 }
 @keyframes diagram-form {
   from {
@@ -99,94 +110,98 @@
   }
 }
 .diagram-node.is-active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--panel-signal);
+  background: var(--panel-signal);
+  box-shadow: var(--signal-glow);
+  color: var(--panel-on-signal);
 }
-.diagram-node.is-active::before {
-  opacity: 1;
-}
-.diagram-node:hover {
-  border-color: var(--brand);
-  background: var(--selected);
-  color: var(--silk);
-}
-.diagram-node:focus-visible {
-  outline: 3px solid var(--brand);
-  outline-offset: 6px;
-}
-.diagram-node.is-unreachable.is-formed {
-  opacity: 0.45;
-}
-.diagram-node.is-fault {
-  border-color: var(--fault);
-}
-.diagram-node.is-fault::before {
-  border-color: var(--fault);
+.diagram-node.is-active::after {
+  opacity: 0;
 }
 .diagram-node.is-reading::before,
 .diagram-node.is-arriving::before {
-  opacity: 1;
+  opacity: 0.55;
+}
+/* Focus is neutral (the plate's text colour), so it never reads as the live signal. */
+.diagram-node:focus-visible {
+  outline: 2px solid var(--panel-text);
+  outline-offset: 9px;
+}
+.diagram-node.is-unreachable.is-formed {
+  border-style: dashed;
+  border-color: var(--panel-muted);
+  color: var(--panel-muted);
+}
+.diagram-node.is-fault {
+  border-color: var(--diagram-fault);
+}
+.diagram-node.is-fault::before {
+  border-color: var(--diagram-fault);
+  opacity: 0.7;
+}
+@media (hover: hover) and (pointer: fine) {
+  .diagram-node:hover:not(.is-active) {
+    border-color: var(--panel-text);
+  }
 }
 
 .diagram-node-name {
   position: relative;
-  max-width: calc(var(--node-size) - 12px);
+  max-width: calc(var(--node-size) - 14px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.2;
 }
 .diagram-node.is-moore .diagram-node-name {
   min-width: 29px;
   padding: 0 4px 3px;
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
-  line-height: 1.15;
+  border-bottom: 1px solid var(--panel-line);
+  font-size: clamp(14px, calc(var(--node-size) * 0.29), 20px);
+  text-align: center;
+}
+.diagram-node.is-moore.is-active .diagram-node-name {
+  border-bottom-color: color-mix(in srgb, var(--panel-on-signal) 30%, transparent);
 }
 .diagram-node-output {
+  position: relative;
   padding-top: 3px;
-  color: var(--accent);
-  font-family: var(--display);
-  font-size: 18px;
-  font-weight: 850;
-  line-height: 1;
+  color: var(--panel-text);
+  font: 500 clamp(13px, calc(var(--node-size) * 0.26), 18px) / 1 var(--mono);
+}
+.diagram-node.is-active .diagram-node-output {
+  color: var(--panel-on-signal);
 }
 
+/* Transition labels: Plex Mono pills. Mealy input in the muted ink, output in full text. */
 .diagram-edge-label {
   position: absolute;
   inset: 0 auto auto 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 33px;
-  padding: 5px 8px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--deep);
-  color: var(--silk);
+  min-width: 36px;
+  padding: 4px 12px;
+  border: 1px solid var(--panel-line);
+  border-radius: 18px;
+  background: var(--panel-raised);
+  color: var(--panel-text);
   opacity: 0;
   translate: 0 4px;
-  font-family: var(--display);
-  font-size: 13px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
+  font: 500 20px/1.2 var(--mono);
   text-align: center;
   transition:
-    opacity 320ms var(--ease),
-    translate 480ms var(--ease),
-    transform 480ms var(--ease),
-    background-color 700ms var(--ease),
-    border-color 700ms var(--ease),
-    color 700ms var(--ease);
+    opacity 200ms var(--ease),
+    translate 280ms var(--ease),
+    transform 280ms var(--ease);
   pointer-events: none;
 }
 .diagram-edge-label.is-visible {
   opacity: 1;
   translate: 0 0;
 }
-.diagram-edge-label.is-unreachable.is-visible {
-  opacity: 0.45;
+.diagram-edge-label.is-unreachable {
+  border-style: dashed;
+  color: var(--panel-muted);
 }
 .diagram-edge-symbol {
   display: flex;
@@ -195,33 +210,53 @@
   gap: 4px;
   white-space: nowrap;
 }
+.edge-input {
+  color: var(--panel-muted);
+}
 .edge-slash {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--panel-ink);
+  font-size: 0.8em;
 }
 .edge-output {
-  color: var(--accent);
+  color: var(--panel-text);
 }
 .diagram-edge-more {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--panel-muted);
+  font: 600 12px/16px var(--display);
 }
+/* The cable that just fired: inverted, like every other live signal. */
 .diagram-edge-label.is-traversed {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
+  border-color: var(--panel-signal);
+  background: var(--panel-signal);
+  box-shadow: var(--signal-glow);
+  color: var(--panel-on-signal);
+}
+.diagram-edge-label.is-traversed :is(.edge-input, .edge-slash, .edge-output, .diagram-edge-more) {
+  color: var(--panel-on-signal);
 }
 .diagram-start-label {
   position: absolute;
   inset: 0 auto auto 0;
-  color: var(--muted);
-  font: 700 11px/1 var(--display);
+  color: var(--panel-muted);
+  font: 500 13px/1 var(--display);
   opacity: 0;
-  transition:
-    opacity 320ms var(--ease),
-    color 700ms var(--ease);
+  transition: opacity 200ms var(--ease);
 }
 .diagram-start-label.is-visible {
   opacity: 1;
+}
+@media (max-width: 959px) {
+  .diagram-edge-label {
+    padding: 3px 10px;
+    font-size: 17px;
+  }
+}
+@media (max-width: 719px) {
+  .diagram-edge-label {
+    min-width: 30px;
+    padding: 2px 8px;
+    font-size: 15px;
+  }
 }
 
 .diagram-reduced .diagram-node,
@@ -236,6 +271,7 @@
   .diagram-node,
   .diagram-edge-label,
   .diagram-node::before,
+  .diagram-node::after,
   .diagram-start-label {
     animation: none;
     transition: none;
@@ -244,25 +280,34 @@
     translate: none;
   }
 }
-@media (prefers-contrast: more) {
-  .diagram-node {
-    border-width: 2px;
-    background: var(--deep);
-  }
-  .diagram-edge-label {
-    border-color: var(--silk);
-    background: var(--deep);
-  }
+.high-contrast .diagram-node {
+  border-width: 3px;
+}
+.high-contrast .diagram-node::after {
+  border-color: var(--panel-ink);
+}
+.high-contrast .diagram-edge-label {
+  border-color: var(--panel-text);
 }
 @media (forced-colors: active) {
+  .diagram {
+    background: Canvas;
+  }
   .diagram-node,
   .diagram-edge-label {
     border-color: CanvasText;
     background: Canvas;
     color: CanvasText;
   }
-  .diagram-node.is-active {
-    outline: 2px solid Highlight;
-    outline-offset: 4px;
+  .diagram-node::before,
+  .diagram-node::after {
+    border-color: CanvasText;
+  }
+  .diagram-node.is-active,
+  .diagram-edge-label.is-traversed {
+    forced-color-adjust: none;
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
   }
 }

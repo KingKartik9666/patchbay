@@ -1,4 +1,17 @@
-import { Icon } from './Icon';
+/** Mirrors the global key handler in App.tsx. */
+const shortcuts = [
+  ['Space', 'Play or pause'],
+  ['←', 'Step back'],
+  ['→', 'Step forward'],
+  ['R', 'Reset'],
+  ['B', 'Replay build'],
+  ['E', 'Editor'],
+  ['F', 'Focus'],
+  ['Q', 'Cycle quality'],
+  ['?', 'Learn'],
+  ['Esc', 'Close panel'],
+] as const;
+
 export function Learn({ onPreset }: { onPreset: (id: string) => void }) {
   return (
     <section id="view-learn" className="view sheet learn-view" aria-label="Learn">
@@ -7,12 +20,10 @@ export function Learn({ onPreset }: { onPreset: (id: string) => void }) {
           <h1>Same input. Different thinking.</h1>
           <p>Two ways to turn a sequence of inputs into a sequence of outputs.</p>
         </div>
-        <Icon name="learn" />
       </header>
       <div className="learn-comparison">
-        <article>
-          <span className="kind-badge">Mealy</span>
-          <h2>The transition writes.</h2>
+        <article className="card">
+          <h2>Mealy: the transition writes</h2>
           <svg
             className="learn-diagram"
             viewBox="0 0 400 140"
@@ -46,9 +57,8 @@ export function Learn({ onPreset }: { onPreset: (id: string) => void }) {
             Try a Mealy machine
           </button>
         </article>
-        <article>
-          <span className="kind-badge">Moore</span>
-          <h2>The state writes.</h2>
+        <article className="card">
+          <h2>Moore: the state writes</h2>
           <svg
             className="learn-diagram"
             viewBox="0 0 400 140"
@@ -86,7 +96,7 @@ export function Learn({ onPreset }: { onPreset: (id: string) => void }) {
           </button>
         </article>
       </div>
-      <div className="learn-bottom">
+      <div className="learn-bottom card">
         <h3>A few useful details</h3>
         <p>
           The entry arrow marks the start state. These machines transform signals, so they have no
@@ -94,17 +104,9 @@ export function Learn({ onPreset }: { onPreset: (id: string) => void }) {
           initial Moore output to match your course convention.
         </p>
         <div className="keyboard-help">
-          {[
-            ['Space', 'Play / pause'],
-            ['← →', 'Step'],
-            ['R', 'Reset'],
-            ['B', 'Replay build'],
-            ['E', 'Editor'],
-            ['F', 'Focus'],
-            ['Q', 'Quality'],
-          ].map(([key, label]) => (
+          {shortcuts.map(([key, label]) => (
             <span key={key}>
-              <kbd>{key}</kbd> {label}
+              <kbd className="kbd-chip">{key}</kbd> {label}
             </span>
           ))}
         </div>

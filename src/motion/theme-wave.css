@@ -1,0 +1,148 @@
+/* Theme wave (src/motion/theme-wave.ts) and the sun/moon toggle glyph
+   (src/components/ThemeGlyph.tsx). Imported by theme-wave.ts. */
+
+/* While a wave or fade is in flight the new snapshot is live: no colour tweens
+   inside it, and the Mica frame paints opaque so neither snapshot carries the
+   DWM tint (the native theme is pinned only once the transition has finished). */
+html[data-theme-wave],
+html[data-theme-fade] {
+  --motion-theme: 0ms;
+}
+html[data-backdrop='mica'][data-theme-wave],
+html[data-backdrop='mica'][data-theme-fade],
+html[data-backdrop='mica'][data-theme-wave] body,
+html[data-backdrop='mica'][data-theme-fade] body {
+  background: var(--mask);
+}
+
+/* The foam canvas exists only during a wave, in its own live group above both
+   root snapshots. */
+.theme-wave-foam {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  view-transition-name: theme-wave-foam;
+}
+/* The toggle stays live, so its glyph springs while the wave rolls. */
+html[data-theme-wave] #theme-toggle {
+  view-transition-name: theme-toggle;
+}
+
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none; /* the clip (wave) or opacity (fade) comes from WAAPI */
+  mix-blend-mode: normal;
+}
+::view-transition-group(*) {
+  animation-duration: 0s;
+}
+::view-transition-old(theme-wave-foam),
+::view-transition-old(theme-toggle) {
+  display: none;
+}
+::view-transition-new(theme-wave-foam),
+::view-transition-new(theme-toggle) {
+  animation: none;
+}
+
+/* ---- toggle glyph: one shape morphing sun <-> moon on a bouncy spring ----
+   --spring-bounce / --spring-bounce-ms: SPRINGS.bounce = { duration: 0.6,
+   bounce: 0.4 } (damping ratio 0.6, 9.5% overshoot, settles in 971 ms). Keyed on
+   html[data-theme-intent], which the controller flips on press, so the glyph
+   answers before the wave lands; before the controller exists it follows
+   html[data-theme]. The glyph shows the current theme: a moon in Night. */
+.theme-glyph {
+  width: 22px;
+  height: 22px;
+  overflow: visible;
+  display: block;
+  rotate: 0deg;
+  transition: rotate var(--spring-bounce-ms) var(--spring-bounce);
+}
+.theme-glyph .core {
+  r: 4.6px;
+  transition: r var(--spring-bounce-ms) var(--spring-bounce);
+}
+.theme-glyph .cut {
+  cx: 31px;
+  cy: -7px;
+  r: 7px;
+  transition:
+    cx var(--spring-bounce-ms) var(--spring-bounce),
+    cy var(--spring-bounce-ms) var(--spring-bounce);
+}
+.theme-glyph .rays {
+  transform-origin: 12px 12px;
+  scale: 1;
+  opacity: 1;
+  transition:
+    scale var(--spring-bounce-ms) var(--spring-bounce),
+    opacity 140ms var(--ease);
+}
+:is(html[data-theme-intent='dark'], html:not([data-theme-intent])[data-theme='dark']) .theme-glyph {
+  rotate: -90deg;
+}
+:is(html[data-theme-intent='dark'], html:not([data-theme-intent])[data-theme='dark'])
+  .theme-glyph
+  .core {
+  r: 8.2px;
+}
+/* Lower right, so the bite sits upper right after the -90deg turn. */
+:is(html[data-theme-intent='dark'], html:not([data-theme-intent])[data-theme='dark'])
+  .theme-glyph
+  .cut {
+  cx: 17.4px;
+  cy: 17.2px;
+}
+:is(html[data-theme-intent='dark'], html:not([data-theme-intent])[data-theme='dark'])
+  .theme-glyph
+  .rays {
+  scale: 0.35;
+  opacity: 0;
+}
+
+/* Reduced motion (app or OS): no turn and no bounce. The shape changes in
+   place and fades up from 20% over 120 ms; the two animation names alternate
+   so every press restarts the fade. */
+html.reduced-motion .theme-glyph,
+html.reduced-motion .theme-glyph .core,
+html.reduced-motion .theme-glyph .cut,
+html.reduced-motion .theme-glyph .rays {
+  transition: none;
+}
+html.reduced-motion[data-theme-intent='dark'] .theme-glyph {
+  animation: theme-glyph-swap-a 120ms var(--ease);
+}
+html.reduced-motion[data-theme-intent='light'] .theme-glyph {
+  animation: theme-glyph-swap-b 120ms var(--ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-glyph,
+  .theme-glyph .core,
+  .theme-glyph .cut,
+  .theme-glyph .rays {
+    transition: none;
+  }
+  html[data-theme-intent='dark'] .theme-glyph {
+    animation: theme-glyph-swap-a 120ms var(--ease);
+  }
+  html[data-theme-intent='light'] .theme-glyph {
+    animation: theme-glyph-swap-b 120ms var(--ease);
+  }
+}
+@keyframes theme-glyph-swap-a {
+  from {
+    opacity: 0.2;
+  }
+}
+@keyframes theme-glyph-swap-b {
+  from {
+    opacity: 0.2;
+  }
+}

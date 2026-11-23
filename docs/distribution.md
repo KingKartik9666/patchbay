@@ -2,7 +2,15 @@
 
 An offline Mealy and Moore machine workbench. Draw states and transitions, edit
 definitions, run binary, multi-variable and event inputs, and follow each step in
-the trace. The interface uses solid light and dark themes with bundled Nunito.
+the trace. There are two themes: Night (dark, the default) with a soft green live
+signal, and Pearl (light) with a blue signal and black ink. The theme button in
+the title bar switches between them with a slow wave. A short colour launch plays
+when the app opens; any key or click skips it, and Settings can turn it off.
+Glass title and side bars float over a calm 3D background that follows the mouse;
+everything you read or operate sits on opaque plates. Animation runs at your
+display's refresh rate. Text uses the bundled Inter Variable font, large titles
+use Newsreader, and tape symbols use IBM Plex Mono. On Windows 11 the window frame
+shows the Mica material; on Windows 10 the frame is opaque.
 
 ## Requirements
 
@@ -77,8 +85,10 @@ the same state for a self-loop. The inspector edits names, inputs and outputs.
 **Text** opens the manual definition editor. Multi-character
 inputs use spaces, for example `11 01 10 00` or `coin push`.
 
-Settings include light/dark themes, reduced motion, high contrast, diagram
-quality and local frame diagnostics. Diagnostics stay on the device.
+Settings include light/dark themes, window material (Mica, the 3D background and
+glass on or off), reduced motion (a still background), high contrast, diagram and
+background quality (Low shows a still gradient) and local frame diagnostics.
+Diagnostics stay on the device.
 Trace and settings preserve the workspace and navigation. Trace includes a step
 scrubber, next-transition preview and output summary. Escape closes a side panel.
 
@@ -91,6 +101,10 @@ also includes Rust build tools, and links to source code for covered versions.
 Published crates that omit a license file use authentic upstream or license-steward
 texts with recorded revision and hash provenance in the source repository.
 
-Nunito: `licenses\Nunito-OFL.txt` (SIL Open Font License 1.1).
+Inter Variable: `licenses\Inter-OFL.txt` (SIL Open Font License 1.1).
+
+IBM Plex Mono: `licenses\IBM-Plex-OFL.txt` (SIL Open Font License 1.1).
+
+Newsreader: `licenses\Newsreader-OFL.txt` (SIL Open Font License 1.1).
 
 Microsoft Edge WebView2 is a separately installed Microsoft component.

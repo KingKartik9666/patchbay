@@ -1,4 +1,4 @@
-use crate::{commands::DesktopError, files, legacy};
+use crate::{appearance::Backdrop, commands::DesktopError, files, legacy};
 use patchbay_core::GraphDraft;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -11,6 +11,9 @@ use std::{
 const SESSION_LIMIT: usize = 8 * files::PROJECT_LIMIT;
 // Keep all earlier recoveries, but bound automatic disk use and directory scans.
 const MAX_RECOVERY_FILES: u32 = 32;
+// Version 1 sessions were written while the frontend forced glass to "solid".
+// Version 2 is the first that records a real Window material choice.
+const SESSION_VERSION: u32 = 2;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -28,6 +31,22 @@ pub struct SavedSession {
     pub focus_mode: bool,
     pub high_contrast: bool,
     pub moore_initial: bool,
+    // Added after version 2 shipped. Defaults keep older sessions loading
+    // unchanged, so SESSION_VERSION stays 2 (an older Patchbay reading a newer
+    // session falls back to its recovery path; see docs/versions.md).
+    #[serde(default = "default_true")]
+    pub launch_animation: bool,
+    /// The app version whose launch was last played or skipped.
+    #[serde(default)]
+    pub launch_seen: Option<String>,
+    #[serde(default = "default_frame_rate")]
+    pub frame_rate: String,
+}
+fn default_true() -> bool {
+    true
+}
+fn default_frame_rate() -> String {
+    "match".into()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -44,6 +63,9 @@ pub struct Startup {
     pub migrated: bool,
     pub warnings: Vec<String>,
     pub version: String,
+    pub backdrop: Backdrop,
+    /// Filled by `commands::startup` from the monitor the window is on.
+    pub display: crate::display::DisplayInfo,
 }
 
 #[derive(Default)]
@@ -73,6 +95,14 @@ pub fn validate(session: &SavedSession) -> Result<(), DesktopError> {
         || !["low", "medium", "high"].contains(&session.quality.as_str())
         || !["solid", "baked"].contains(&session.glass.as_str())
         || !["bench", "machines", "editor", "learn"].contains(&session.route.as_str())
+        || !["match", "60", "30"].contains(&session.frame_rate.as_str())
+        || session.launch_seen.as_deref().is_some_and(|seen| {
+            seen.is_empty()
+                || seen.len() > 32
+                || !seen
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || b".+-".contains(&byte))
+        })
     {
         return Err(DesktopError::new(
             "validation",
@@ -98,7 +128,7 @@ pub fn save(path: &Path, session: SavedSession) -> Result<(), DesktopError> {
     validate(&session)?;
     let wrapper = SessionFile {
         format: "patchbay-session".into(),
-        version: 1,
+        version: SESSION_VERSION,
         session,
     };
     let bytes = serde_json::to_vec(&wrapper)
@@ -136,14 +166,20 @@ fn load(path: &Path) -> Result<SavedSession, DesktopError> {
             "The saved file is not a Patchbay session.",
         ));
     }
-    if value.get("version").and_then(serde_json::Value::as_u64) != Some(1) {
+    let version = value.get("version").and_then(serde_json::Value::as_u64);
+    if version != Some(1) && version != Some(u64::from(SESSION_VERSION)) {
         return Err(DesktopError::new(
             "format",
             "This session version is not supported.",
         ));
     }
-    let wrapper: SessionFile = serde_json::from_value(value)
+    let mut wrapper: SessionFile = serde_json::from_value(value)
         .map_err(|_| DesktopError::new("format", "The saved session is invalid."))?;
+    if wrapper.version == 1 {
+        // Version 1 stored a "solid" the user never chose, so start from the
+        // translucent default once. The next save writes the current version.
+        wrapper.session.glass = "baked".into();
+    }
     validate(&wrapper.session)?;
     Ok(wrapper.session)
 }
@@ -280,6 +316,8 @@ pub fn startup(path: PathBuf, legacy_profile: Option<PathBuf>) -> Startup {
         migrated: false,
         warnings: vec![],
         version: env!("CARGO_PKG_VERSION").into(),
+        backdrop: Backdrop::default(),
+        display: Default::default(),
     };
     let exists = match path.try_exists() {
         Ok(exists) => exists,
@@ -381,7 +419,69 @@ mod tests {
             focus_mode: false,
             high_contrast: false,
             moore_initial: true,
+            launch_animation: true,
+            launch_seen: None,
+            frame_rate: "match".into(),
         }
+    }
+
+    #[test]
+    fn sessions_written_before_launch_and_frame_rate_load_with_defaults() {
+        let directory = tempfile::tempdir().expect("fixture");
+        let path = directory.path().join("session.json");
+        let mut old = serde_json::to_value(sample()).expect("json");
+        let object = old.as_object_mut().expect("object");
+        for name in ["launchAnimation", "launchSeen", "frameRate"] {
+            assert!(object.remove(name).is_some(), "{name} is serialized");
+        }
+        let file = serde_json::json!({"format": "patchbay-session", "version": 2, "session": old});
+        fs::write(&path, serde_json::to_vec(&file).expect("json")).expect("old fixture");
+        let loaded = startup(path, None);
+        assert!(loaded.warnings.is_empty(), "{:?}", loaded.warnings);
+        let session = loaded.session.expect("old session loads");
+        assert!(session.launch_animation);
+        assert_eq!(session.launch_seen, None);
+        assert_eq!(session.frame_rate, "match");
+        assert_eq!(session.source, sample().source);
+    }
+
+    #[test]
+    fn launch_and_frame_rate_preferences_round_trip_and_are_validated() {
+        let directory = tempfile::tempdir().expect("fixture");
+        let path = directory.path().join("session.json");
+        let mut expected = sample();
+        expected.launch_animation = false;
+        expected.launch_seen = Some("2.0.0-beta.1+win".into());
+        expected.frame_rate = "30".into();
+        save(&path, expected.clone()).expect("save new fields");
+        let saved: serde_json::Value =
+            serde_json::from_slice(&fs::read(&path).expect("saved")).expect("json");
+        assert_eq!(saved["version"], serde_json::json!(SESSION_VERSION));
+        assert_eq!(
+            saved["session"]["launchAnimation"],
+            serde_json::json!(false)
+        );
+        assert_eq!(saved["session"]["frameRate"], serde_json::json!("30"));
+        assert_eq!(
+            serde_json::to_value(load(&path).expect("round trip")).expect("json"),
+            serde_json::to_value(&expected).expect("json")
+        );
+        let original = fs::read(&path).expect("bytes");
+        for (frame_rate, launch_seen) in [
+            ("144", None),
+            ("match", Some("")),
+            ("match", Some("2.0.0\"</script>")),
+            ("match", Some("1".repeat(33).as_str())),
+        ] {
+            let mut invalid = expected.clone();
+            invalid.frame_rate = frame_rate.into();
+            invalid.launch_seen = launch_seen.map(str::to_owned);
+            assert_eq!(
+                save(&path, invalid).expect_err("invalid").code,
+                "validation"
+            );
+        }
+        assert_eq!(fs::read(&path).expect("unchanged"), original);
     }
 
     fn unfinished_graph(kind: MachineKind) -> GraphDraft {
@@ -507,6 +607,28 @@ mod tests {
                 serde_json::to_value(expected).expect("json")
             );
         }
+        assert!(recovery_files(directory.path()).is_empty());
+    }
+
+    #[test]
+    fn version_one_sessions_move_to_the_translucent_window_material_once() {
+        let directory = tempfile::tempdir().expect("fixture");
+        let path = directory.path().join("session.json");
+        let forced_solid =
+            serde_json::json!({"format":"patchbay-session","version":1,"session":sample()});
+        fs::write(&path, serde_json::to_vec(&forced_solid).expect("json")).expect("v1 fixture");
+        let loaded = startup(path.clone(), None);
+        assert!(loaded.warnings.is_empty());
+        let mut session = loaded.session.expect("version 1 session loads");
+        assert_eq!(session.glass, "baked");
+        assert_eq!(session.source, sample().source);
+
+        session.glass = "solid".into();
+        save(&path, session).expect("save a deliberate solid choice");
+        let saved: serde_json::Value =
+            serde_json::from_slice(&fs::read(&path).expect("saved")).expect("json");
+        assert_eq!(saved["version"], serde_json::json!(SESSION_VERSION));
+        assert_eq!(load(&path).expect("version 2 session").glass, "solid");
         assert!(recovery_files(directory.path()).is_empty());
     }
 

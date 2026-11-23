@@ -1,107 +1,531 @@
-/* Nunito Latin variable, bundled for offline use. OFL-1.1: fonts/Nunito-OFL.txt. */
+/* Night & Pearl tokens (DESIGN.md). One product in two lights: Night (dark, the default) follows
+   the user's reference (near-black, sage charcoal, one pistachio signal); Pearl is luminous
+   off-white with PlayStation blue and black ink. Layout, radii, type and motion are shared;
+   only colour, glows and the field's tint change.
+   Inter Variable stands in for SF (Apple's face cannot be bundled on Windows); IBM Plex Mono 500
+   sets every symbol a student must read on a projector; Newsreader 400 sets large titles only.
+   All are local, OFL-1.1: licenses/Inter-OFL.txt, IBM-Plex-OFL.txt and Newsreader-OFL.txt. */
 @font-face {
-  font-family: 'Nunito Variable';
+  font-family: 'Inter Variable';
   font-style: normal;
-  font-display: swap;
-  font-weight: 200 1000;
-  src: url('./fonts/nunito-latin-variable.woff2') format('woff2');
+  font-display: block;
+  font-weight: 100 900;
+  src: url('./fonts/inter-latin-wght-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-display: block;
+  font-weight: 500;
+  src: url('./fonts/ibm-plex-mono-latin-500.woff2') format('woff2');
+}
+/* @fontsource/newsreader@5.3.0, latin 400 normal (22,480 B). Display titles and the launch
+   wordmark, never below 28px. */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-display: block;
+  font-weight: 400;
+  src: url('./fonts/newsreader-latin-400-normal.woff2') format('woff2');
 }
 
+/* The cursor light drives the specular rim of each registered glass surface. The field
+   writes these inline on at most three elements, so they never inherit. */
+@property --la {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 225deg;
+}
+@property --lx {
+  syntax: '<length-percentage>';
+  inherits: false;
+  initial-value: 50%;
+}
+@property --px {
+  syntax: '<length-percentage>';
+  inherits: false;
+  initial-value: 50%;
+}
+@property --py {
+  syntax: '<length-percentage>';
+  inherits: false;
+  initial-value: 50%;
+}
+
+/* Shared by both themes: faces, geometry and motion. */
 :root {
-  color-scheme: light;
-  font-family: 'Nunito Variable', system-ui, sans-serif;
-  font-size: 14px;
-  font-weight: 450;
+  font-family: 'Inter Variable', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
   font-synthesis: none;
-  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1,
+    'ss02' 1;
   color: var(--silk);
   background: var(--mask);
-  --display: 'Nunito Variable', system-ui, sans-serif;
-  --mask: #edf2f9;
-  --deep: #ffffff;
-  --solid: #f5f7fb;
-  --silk: #1b2940;
-  --muted: #56647a;
-  --line: #c9d4e4;
-  --strong-line: #8293ac;
-  --brand: #2458d3;
-  --brand-hover: #1947b3;
-  --on-brand: #ffffff;
-  --accent: #c63743;
-  --accent-soft: #fff0f1;
-  --accent-line: #e6a6ad;
-  --on-accent: #ffffff;
-  --fault: #b62737;
-  --hover: #f0f4fa;
-  --selected: #e9efff;
-  --halo: #e9efff;
-  --copper: var(--brand);
-  --mint: var(--accent);
-  --r-10: 10px;
-  --r-16: 14px;
-  --r-24: 18px;
-  --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --motion-quick: 260ms;
-  --motion-slow: 480ms;
+  --display: 'Inter Variable', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', Consolas, ui-monospace, monospace;
+  --serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --frost-filter: blur(4px) saturate(120%);
+
+  /* Geometry */
+  --titlebar-h: 52px;
+  --rail-w: 224px;
+  --rail-inset: 12px;
+  --bar-h: 0px;
+  --frame-gutter: 20px;
+  --drawer-w: 400px;
+  --sheet-r: 28px;
+  --control-h: 36px;
+
+  /* Motion. The spring tokens (--spring-*) come from motion/springs.css. Theme colours never
+     tween on surfaces: the wave or the reduced-motion cross-fade carries a theme change. */
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-move: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --motion-press: 100ms;
+  --motion-quick: 150ms;
+  --motion-ui: 200ms;
+  --motion-exit: 160ms;
+  --motion-slow: 300ms;
+  --motion-recede: 400ms;
+  --motion-theme: 0ms;
 }
 
-:root[data-theme='dark'] {
+/* Night (dark, the default and the first paint). Sampled from .work/refs/dark-reference.png,
+   tuned for contrast. Audited text, surface and action tokens stay opaque six-digit hex:
+   check-bundle.mjs and the native appearance tests read them directly. WCAG 2.x ratios. */
+:root,
+html[data-theme='dark'] {
   color-scheme: dark;
-  --mask: #17191e;
-  --deep: #23262d;
-  --solid: #2b2f38;
-  --silk: #f4f4f5;
-  --muted: #b6bdc9;
-  --line: #464c58;
-  --strong-line: #717b8c;
-  --brand: #ffa36b;
-  --brand-hover: #ffba90;
-  --on-brand: #271b15;
-  --accent: #c5eb65;
-  --accent-soft: #333c24;
-  --accent-line: #78894f;
-  --on-accent: #1d2711;
-  --fault: #ff9aa6;
-  --hover: #30353e;
-  --selected: #3c302a;
-  --halo: #3c302a;
+  /* ink 18.89 · ink-2 10.13 · ink-3 7.89 */
+  --mask: #0c0d0d;
+  /* reference cards #1D1F1E: ink 16.27 · ink-2 8.72 · ink-3 6.79 */
+  --deep: #1c1e1d;
+  --solid: #242726;
+  --hover: #2a2d2c;
+  /* ink-3 5.17; never faint text on --active (4.61) */
+  --selected: #303332;
+  --active: #373b39;
+  --silk: #fafcfb;
+  --muted: #b4bdba;
+  /* the reference's body grey #7B827F (4.2) lifted */
+  --faint: #9ea7a3;
+  --line: #2b2e2d;
+  /* 3.85 deep · 3.47 solid · 3.20 hover */
+  --strong-line: #737b77;
+  /* pistachio (reference pill #D1E7C2-#D6ECC8): as text >= 9.49 on every surface */
+  --brand: #dcf1cf;
+  --brand-hover: #e8f7de;
+  --brand-pressed: #cfe6c0;
+  --on-brand: #0e1a0a;
+  --accent: #dcf1cf;
+  --accent-soft: #29331f;
+  --accent-line: #7f9a6c;
+  --on-accent: #0e1a0a;
+  /* selection and focus stay neutral: white on Night */
+  --select: #fafcfb;
+  --on-select: #0c0d0d;
+  --fault: #efb0aa;
+  --fault-soft: #2e1f1e;
+  --fault-line: #c98b86;
+  --win-close: #a3393c;
+  --on-win-close: #ffffff;
+
+  /* Instrument plate: recessed toward the page black, pistachio live signal. Read by
+     diagram-ink.ts, editor/ink.ts and GraphCanvas.tsx on every theme change. */
+  --panel: #111312;
+  --panel-raised: #1c1f1e;
+  --panel-line: #313533;
+  /* idle cable: 5.11 on panel; signal vs ink 3.04 */
+  --panel-ink: #7f8884;
+  --panel-ring: #8f9894;
+  --panel-text: #fafcfb;
+  --panel-muted: #a3aca8;
+  /* 14.83 on panel */
+  --panel-signal: #dcf1cf;
+  --panel-signal-soft: #2c3627;
+  --panel-on-signal: #0e1a0a;
+  --panel-fault: #efb0aa;
+  /* plate scrollbar thumb: 5.11 on panel */
+  --panel-scroll: #7f8884;
+  --panel-edge: rgba(250, 252, 251, 0.05);
+  --panel-frost: rgba(17, 19, 18, 0.62);
+  --plate-inset: inset 0 2px 10px rgba(0, 0, 0, 0.45);
+  --tape-inset: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+  --signal-rgb: 220, 241, 207;
+  --signal-glow: 0 0 0 3px rgba(220, 241, 207, 0.16), 0 0 28px 6px rgba(198, 232, 178, 0.3);
+  --signal-halo: rgba(220, 241, 207, 0.2);
+  --sweep: rgba(220, 241, 207, 0.22);
+
+  /* Components: the reference's green bloom under the primary pill, pale round keys. */
+  --pill-glow: 0 12px 30px -8px rgba(198, 232, 178, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  --pill-glow-live: 0 0 0 3px rgba(220, 241, 207, 0.18), 0 12px 32px -6px rgba(198, 232, 178, 0.5);
+  --thumb-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --circle-fill: linear-gradient(180deg, #d2d8d5, #b9c1be);
+  --circle-fill-hover: linear-gradient(180deg, #dde2df, #c6cdca);
+  /* 10.24 worst */
+  --circle-ink: #101211;
+  --circle-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 14px -6px rgba(0, 0, 0, 0.6);
+  /* optional quiet part of a two-tone serif title: 5.21 on deep, 6.04 on mask */
+  --title-quiet: #8a918e;
+
+  /* Window frame over Mica: painted only under html[data-backdrop='mica']. */
+  --frame-tint: rgba(12, 13, 13, 0.72);
+  --frame-hover: rgba(250, 252, 251, 0.08);
+  --frame-selected: rgba(250, 252, 251, 0.12);
+  --frame-pressed: rgba(250, 252, 251, 0.05);
+  --frame-indicator: rgba(250, 252, 251, 0.11);
+
+  /* Liquid Glass: navigation layer only. Fills are composited over the clamped field, the
+     Mica fallback, or pure black and white, and every text colour stays >= 4.5:1. */
+  --glass-bar: rgba(21, 23, 22, 0.62);
+  --glass-sidebar: rgba(21, 23, 22, 0.72);
+  --glass-sheet: rgba(21, 23, 22, 0.86);
+  --glass-solid-bar: #161817;
+  --glass-solid-panel: #141615;
+  --glass-solid-sheet: #151716;
+  --glass-filter-bar: blur(20px) saturate(115%) brightness(0.86);
+  --glass-filter-panel: blur(20px) saturate(110%) brightness(0.84);
+  --toast-glass: rgba(21, 23, 22, 0.86);
+  --toast-fallback: #161817;
+  --toast-text: #fafcfb;
+  --toast-edge: rgba(250, 252, 251, 0.08);
+  --toast-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.55);
+  --toast-filter: blur(16px) brightness(0.84);
+  --scroll-glass: rgba(28, 30, 29, 0.86);
+  --scroll-line: rgba(250, 252, 251, 0.08);
+  --scroll-filter: blur(16px) brightness(0.84);
+  --frost: rgba(17, 19, 18, 0.55);
+  --frost-edge: #737b77;
+
+  --tooltip: #fafcfb;
+  --on-tooltip: #0c0d0d;
+  /* >= 12.39 on every surface */
+  --focus: #fafcfb;
+  --focus-halo: #0c0d0d;
+  /* silk on it 8.79 */
+  --selection: #3e4d35;
+  --on-selection: #fafcfb;
+
+  /* Material: wide, soft shadows; a specular rim lit from the cursor side. */
+  --card-shadow: 0 24px 64px -24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(250, 252, 251, 0.04);
+  --glass-shadow: 0 24px 64px -16px rgba(0, 0, 0, 0.55);
+  --glass-shadow-sheet: 0 32px 80px -20px rgba(0, 0, 0, 0.6);
+  --glass-sheen: linear-gradient(180deg, rgba(250, 252, 251, 0.05), rgba(250, 252, 251, 0) 42%);
+  --glass-recede: rgba(21, 23, 22, 0.16);
+  --glass-drop: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --rim-top: rgba(250, 252, 251, 0.1);
+  /* the reference's hairline on dark pills */
+  --rim-edge: rgba(250, 252, 251, 0.05);
+  --rim-hi: rgba(250, 252, 251, 0.45);
+  /* a whisper of pistachio in the lit rim */
+  --rim-mid: rgba(220, 241, 207, 0.1);
+  --rim-lo: rgba(250, 252, 251, 0.035);
+  --rim-line: rgba(250, 252, 251, 0.06);
+  --rim-line-hi: rgba(220, 241, 207, 0.22);
+  --press-glow: rgba(220, 241, 207, 0.14);
+  --capsule-fill: rgba(250, 252, 251, 0.06);
+
+  /* The field: shader uniforms and the static CSS field (L .004 / .007). */
+  --field-0: #0c0d0d;
+  --field-1: #121413;
+  --field-static: radial-gradient(120% 90% at 30% 20%, #141615, #0c0d0d 70%);
 }
 
-:root.high-contrast {
-  --muted: var(--silk);
-  --line: var(--strong-line);
-}
-.high-contrast .sheet,
-.high-contrast .glass,
-.high-contrast .drawer {
-  border-color: var(--silk);
-}
-::selection {
-  background: var(--brand);
-  color: var(--on-brand);
+/* Pearl (light): a luminous off-white, PlayStation blue as the one accent, black ink.
+   #0070D1 is the live signal on the plate only; text and the primary capsule use #0062BB. */
+html[data-theme='light'] {
+  color-scheme: light;
+  /* ink 16.83 · ink-2 9.25 · ink-3 5.62 */
+  --mask: #eceef2;
+  /* ink 18.91 · ink-2 10.40 · ink-3 6.31 */
+  --deep: #fbfbfd;
+  --solid: #f1f3f6;
+  --hover: #eaedf1;
+  /* ink-3 5.21 */
+  --selected: #e2e6ec;
+  --active: #dadfe6;
+  --silk: #0b0c10;
+  --muted: #383e49;
+  --faint: #575e6b;
+  --line: #dadee5;
+  /* 3.75 deep · 3.48 solid · 3.30 hover */
+  --strong-line: #7a8290;
+  /* PS blue, text-grade step: white 6.06; as text 5.76 deep · 5.22 mask · >= 4.53 active */
+  --brand: #0062bb;
+  /* PlayStation-style darkening: white 7.09 / 9.20 */
+  --brand-hover: #0058a8;
+  --brand-pressed: #00439c;
+  --on-brand: #ffffff;
+  --accent: #0062bb;
+  --accent-soft: #e3eefa;
+  --accent-line: #5f93cf;
+  --on-accent: #ffffff;
+  /* selection and focus stay neutral: black on Pearl */
+  --select: #0b0c10;
+  --on-select: #fbfbfd;
+  --fault: #a7302b;
+  --fault-soft: #fbebe9;
+  --fault-line: #bd6a64;
+  /* Windows close red: white 5.66 */
+  --win-close: #c42b1c;
+  --on-win-close: #ffffff;
+
+  /* Instrument plate: recessed pearl, black ink, PlayStation blue signal. Idle ink stays at
+     luminance <= 0.0207 and the plate no darker than #F5F6F9, or the signal rules break. */
+  --panel: #f5f6f9;
+  --panel-raised: #ffffff;
+  --panel-line: #d9dde4;
+  /* idle cable: 14.75 on panel; signal vs ink 3.22 */
+  --panel-ink: #1f2228;
+  --panel-ring: #2c3038;
+  --panel-text: #0b0c10;
+  --panel-muted: #565d6a;
+  /* 4.58 on panel · 4.95 on raised */
+  --panel-signal: #0070d1;
+  --panel-signal-soft: #dce9f8;
+  --panel-on-signal: #ffffff;
+  --panel-fault: #a7302b;
+  /* plate scrollbar thumb: 3.58 on panel; the black idle ink would shout as a scrollbar */
+  --panel-scroll: #7a8290;
+  --panel-edge: rgba(11, 12, 16, 0.07);
+  --panel-frost: rgba(245, 246, 249, 0.62);
+  --plate-inset: inset 0 2px 8px rgba(16, 24, 40, 0.1);
+  --tape-inset: inset 0 2px 6px rgba(16, 24, 40, 0.1);
+  --signal-rgb: 0, 112, 209;
+  --signal-glow: 0 0 0 3px rgba(0, 112, 209, 0.16), 0 0 26px 4px rgba(0, 112, 209, 0.3);
+  --signal-halo: rgba(0, 112, 209, 0.2);
+  --sweep: rgba(0, 112, 209, 0.14);
+
+  /* Components: a blue bloom under the primary pill, black round keys. */
+  --pill-glow: 0 12px 28px -8px rgba(0, 112, 209, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  --pill-glow-live: 0 0 0 3px rgba(0, 112, 209, 0.18), 0 12px 30px -6px rgba(0, 112, 209, 0.55);
+  --thumb-shadow: 0 2px 8px -2px rgba(0, 98, 187, 0.45);
+  --circle-fill: linear-gradient(180deg, #30343c, #0b0c10);
+  --circle-fill-hover: linear-gradient(180deg, #3b4049, #17191f);
+  /* 12.08 worst */
+  --circle-ink: #fbfbfd;
+  --circle-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 14px -6px rgba(11, 12, 16, 0.45);
+  /* 5.19 on deep, 4.62 on mask (DESIGN.md's #6B7280 is 4.16 on mask) */
+  --title-quiet: #646b78;
+
+  --frame-tint: rgba(236, 238, 242, 0.72);
+  --frame-hover: rgba(11, 12, 16, 0.06);
+  --frame-selected: rgba(11, 12, 16, 0.09);
+  --frame-pressed: rgba(11, 12, 16, 0.04);
+  --frame-indicator: rgba(255, 255, 255, 0.8);
+
+  --glass-bar: rgba(250, 250, 252, 0.66);
+  --glass-sidebar: rgba(250, 250, 252, 0.76);
+  --glass-sheet: rgba(250, 250, 252, 0.92);
+  --glass-solid-bar: #f1f3f6;
+  --glass-solid-panel: #f3f4f7;
+  --glass-solid-sheet: #fbfbfd;
+  --glass-filter-bar: blur(20px) saturate(115%) brightness(1.04);
+  --glass-filter-panel: blur(20px) saturate(110%) brightness(1.04);
+  --toast-glass: rgba(250, 250, 252, 0.92);
+  --toast-fallback: #fbfbfd;
+  --toast-text: #0b0c10;
+  --toast-edge: rgba(11, 12, 16, 0.08);
+  --toast-shadow: 0 18px 48px -14px rgba(18, 28, 48, 0.2);
+  --toast-filter: blur(16px) brightness(1.04);
+  --scroll-glass: rgba(251, 251, 253, 0.92);
+  --scroll-line: rgba(11, 12, 16, 0.08);
+  --scroll-filter: blur(16px) brightness(1.04);
+  --frost: rgba(245, 246, 249, 0.55);
+  --frost-edge: #7a8290;
+
+  --tooltip: #0b0c10;
+  --on-tooltip: #fbfbfd;
+  /* black ring, pearl halo: >= 15 on every surface */
+  --focus: #0b0c10;
+  --focus-halo: #fbfbfd;
+  /* silk on it 14.68 */
+  --selection: #cfe1f7;
+  --on-selection: #0b0c10;
+
+  --card-shadow: 0 18px 48px -16px rgba(18, 28, 48, 0.16), inset 0 1px 0 #ffffff;
+  --glass-shadow: 0 18px 48px -14px rgba(18, 28, 48, 0.16);
+  --glass-shadow-sheet: 0 18px 48px -14px rgba(18, 28, 48, 0.22);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 42%);
+  --glass-recede: rgba(250, 250, 252, 0.18);
+  --glass-drop: 0 1px 2px rgba(18, 28, 48, 0.12);
+  --rim-top: rgba(255, 255, 255, 0.92);
+  --rim-edge: rgba(11, 12, 16, 0.06);
+  --rim-hi: rgba(255, 255, 255, 0.9);
+  /* faint blue-pearl iridescence in the specular rim */
+  --rim-mid: rgba(214, 228, 250, 0.45);
+  --rim-lo: rgba(11, 12, 16, 0.06);
+  --rim-line: rgba(11, 12, 16, 0.08);
+  --rim-line-hi: rgba(0, 98, 187, 0.22);
+  --press-glow: rgba(0, 98, 187, 0.1);
+  --capsule-fill: rgba(11, 12, 16, 0.05);
+
+  /* L .766 / .905; --field-1 is also the shader's light clamp floor colour. */
+  --field-0: #dfe3ea;
+  --field-1: #f3f4f7;
+  --field-static:
+    radial-gradient(90% 70% at 22% 8%, #ffffff, rgba(255, 255, 255, 0) 60%),
+    radial-gradient(70% 60% at 85% 18%, rgba(214, 228, 250, 0.7), rgba(214, 228, 250, 0) 70%),
+    radial-gradient(60% 50% at 70% 96%, rgba(246, 236, 240, 0.55), rgba(246, 236, 240, 0) 70%),
+    linear-gradient(180deg, #f3f4f7, #dfe3ea);
 }
 
-input,
-select,
-textarea,
-.secondary-button,
-.load-button,
-.kind-switch,
-.graph-button,
-.graph-editor .graph-form input,
-.graph-editor .graph-form select,
-.graph-editor .graph-fill input {
-  border-color: var(--strong-line);
+/* Opaque glass: reduced transparency (OS or the app's solid material), quality 'low',
+   high contrast and screenshots. Every glass fill resolves to its solid twin, so the
+   surfaces keep their audited background declarations. */
+:root.reduced-transparency,
+:root[data-quality='low'],
+:root.high-contrast,
+:root[data-capture] {
+  --glass-bar: var(--glass-solid-bar);
+  --glass-sidebar: var(--glass-solid-panel);
+  --glass-sheet: var(--glass-solid-sheet);
+  --toast-glass: var(--toast-fallback);
+  --scroll-glass: var(--glass-solid-sheet);
+  --frost: var(--deep);
+  --panel-frost: var(--panel);
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root:root {
+    --glass-bar: var(--glass-solid-bar);
+    --glass-sidebar: var(--glass-solid-panel);
+    --glass-sheet: var(--glass-solid-sheet);
+    --toast-glass: var(--toast-fallback);
+    --scroll-glass: var(--glass-solid-sheet);
+    --frost: var(--deep);
+    --panel-frost: var(--panel);
+  }
 }
 
-/* State diagrams retain their measured geometry when contrast is increased. */
-@media (prefers-contrast: more) {
+/* High contrast: black or white surfaces, opposite-colour edges, no secondary greys, no
+   glows, rims or gradients. Live state is carried by width, the ring and the inverted fill. */
+html.high-contrast:not([data-theme='light']) {
+  --mask: #000000;
+  --deep: #000000;
+  --solid: #0c0d0d;
+  --muted: #fafcfb;
+  --faint: #fafcfb;
+  --line: #fafcfb;
+  --strong-line: #fafcfb;
+  --glass-solid-bar: #000000;
+  --glass-solid-panel: #000000;
+  --glass-solid-sheet: #000000;
+  --toast-fallback: #000000;
+  --panel: #000000;
+  --panel-raised: #000000;
+  --panel-muted: #fafcfb;
+  --panel-ink: #fafcfb;
+  --panel-ring: #fafcfb;
+  --panel-line: #fafcfb;
+  --panel-scroll: #fafcfb;
+  /* 17.53 on black */
+  --panel-signal: #dcf1cf;
+  --signal-glow: 0 0 0 2px #000000, 0 0 0 5px #fafcfb;
+  --pill-glow: none;
+  --pill-glow-live: 0 0 0 2px #000000, 0 0 0 5px #fafcfb;
+  --thumb-shadow: none;
+  --circle-fill: #fafcfb;
+  --circle-fill-hover: #ffffff;
+  --circle-ink: #000000;
+  --circle-shadow: none;
+  --card-shadow: none;
+}
+html.high-contrast[data-theme='light'] {
+  --mask: #ffffff;
+  --deep: #ffffff;
+  --solid: #f5f6f9;
+  --muted: #000000;
+  --faint: #000000;
+  --line: #000000;
+  --strong-line: #000000;
+  --glass-solid-bar: #ffffff;
+  --glass-solid-panel: #ffffff;
+  --glass-solid-sheet: #ffffff;
+  --toast-fallback: #ffffff;
+  /* white 8.04 */
+  --brand: #004f9e;
+  --brand-hover: #00438a;
+  --brand-pressed: #00387a;
+  --accent: #004f9e;
+  --panel: #ffffff;
+  --panel-raised: #ffffff;
+  --panel-text: #000000;
+  --panel-muted: #000000;
+  --panel-ink: #000000;
+  --panel-ring: #000000;
+  --panel-line: #000000;
+  --panel-scroll: #000000;
+  /* 8.04 on white */
+  --panel-signal: #004f9e;
+  --signal-glow: 0 0 0 2px #ffffff, 0 0 0 5px #000000;
+  --pill-glow: none;
+  --pill-glow-live: 0 0 0 2px #ffffff, 0 0 0 5px #000000;
+  --thumb-shadow: none;
+  --circle-fill: #000000;
+  --circle-fill-hover: #0b0c10;
+  --circle-ink: #ffffff;
+  --circle-shadow: none;
+  --card-shadow: none;
+}
+
+/* Frame geometry follows the window: sidebar, icon rail, then a bottom tab bar. */
+@media (min-width: 1600px) {
   :root {
-    --muted: var(--silk);
-    --line: var(--strong-line);
+    --drawer-w: 440px;
   }
-  .diagram-node,
-  .diagram-edge-label {
-    border-color: var(--silk);
+}
+@media (max-width: 1199px) {
+  :root {
+    --rail-w: 72px;
   }
+}
+@media (max-width: 719px) {
+  :root {
+    --rail-w: 0px;
+    --bar-h: 88px;
+    --frame-gutter: 12px;
+    --control-h: 44px;
+  }
+}
+@media (pointer: coarse) {
+  :root {
+    --control-h: 44px;
+  }
+}
+
+/* Window material. use-visual-system sets data-backdrop; the default is opaque. The field
+   canvas covers the frame whenever it runs, so Mica shows only where the field is off. */
+html {
+  scrollbar-color: var(--strong-line) var(--mask);
+}
+body {
+  background-color: var(--mask);
+  transition: background-color var(--motion-theme) var(--ease);
+}
+html[data-backdrop='mica'],
+html[data-backdrop='mica'] #app {
+  background: transparent;
+}
+html[data-backdrop='mica'] body {
+  background-color: var(--frame-tint);
+}
+html[data-backdrop='mica'][data-capture] {
+  background: var(--mask);
+}
+html[data-backdrop='mica'][data-capture] body {
+  background-color: var(--mask);
+  transition: none;
+}
+html[data-capture] body {
+  background-color: var(--mask);
+}
+
+/* Browser surfaces: selection, caret and scrollbars carry the palette too. */
+::selection {
+  background: var(--selection);
+  color: var(--on-selection);
 }

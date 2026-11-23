@@ -10,11 +10,18 @@ export interface InkSnapshot {
   selectedTransition: string;
   connection: { source: string; point: Point | null };
 }
+/** Themed plate colours: edges in ink, the live selection in the theme's one signal colour. */
 export interface InkColors {
-  copper: string;
-  mint: string;
+  ink: string;
+  signal: string;
   line: string;
 }
+/** Night plate fallbacks for a failed CSS read; the --panel-* tokens in reference.css win. */
+export const INK_FALLBACK: Readonly<InkColors> = {
+  ink: '#7F8884',
+  signal: '#DCF1CF',
+  line: '#313533',
+};
 
 /** Canvas owns only visible ink. Semantic states and labels are React buttons. */
 export function drawGraphInk(
@@ -58,7 +65,7 @@ export function drawGraphInk(
     )
       continue;
     const selected = curve.transition.id === selectedTransition;
-    context.strokeStyle = context.fillStyle = selected ? colors.mint : colors.copper;
+    context.strokeStyle = context.fillStyle = selected ? colors.signal : colors.ink;
     context.lineWidth = (selected ? 2.4 : 1.6) / zoom;
     context.beginPath();
     context.moveTo(curve.a.x, curve.a.y);
@@ -81,7 +88,7 @@ export function drawGraphInk(
   }
   const start = draft.states.find((state) => state.id === draft.start);
   if (start) {
-    context.strokeStyle = context.fillStyle = colors.mint;
+    context.strokeStyle = context.fillStyle = colors.signal;
     context.lineWidth = 1.5 / zoom;
     context.beginPath();
     context.moveTo(start.x - STATE_RADIUS - 35, start.y);
@@ -96,7 +103,7 @@ export function drawGraphInk(
   }
   const source = draft.states.find((state) => state.id === connection.source);
   if (source && connection.point) {
-    context.strokeStyle = colors.mint;
+    context.strokeStyle = colors.signal;
     context.lineWidth = 1.7 / zoom;
     context.setLineDash([6 / zoom, 5 / zoom]);
     context.beginPath();

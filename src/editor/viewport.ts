@@ -57,6 +57,56 @@ export function graphBounds(draft: GraphDraft, curves: readonly Curve[]): Bounds
   return { left: left - 100, top: top - 100, right: right + 100, bottom: bottom + 100 };
 }
 
+/** World padding around fitted content. */
+export const FIT_PADDING = 32;
+
+/**
+ * Everything the stage draws for a draft, in world units: each state, the start arrow and
+ * its "start" label (left of the start state, under the arrow's tail), each "+" handle (a
+ * 28px button placed at x + R with translate(-25%, -50%)), and each curve with room for its
+ * label pill. Fitting to this keeps every glyph inside the stage. An empty draft keeps the
+ * default 400 x 260 drawing area.
+ */
+export function contentBounds(draft: GraphDraft, curves: readonly Curve[]): Bounds {
+  if (!draft.states.length) return { left: 0, top: 0, right: 400, bottom: 260 };
+  let left = Infinity,
+    top = Infinity,
+    right = -Infinity,
+    bottom = -Infinity;
+  const include = (l: number, t: number, r: number, b: number) => {
+    left = Math.min(left, l);
+    top = Math.min(top, t);
+    right = Math.max(right, r);
+    bottom = Math.max(bottom, b);
+  };
+  for (const state of draft.states) {
+    include(
+      state.x - STATE_RADIUS,
+      state.y - STATE_RADIUS,
+      state.x + STATE_RADIUS,
+      state.y + STATE_RADIUS,
+    );
+    include(state.x + STATE_RADIUS - 7, state.y - 16, state.x + STATE_RADIUS + 24, state.y + 16);
+    if (state.id === draft.start) {
+      include(state.x - STATE_RADIUS - 40, state.y, state.x - STATE_RADIUS, state.y);
+      include(state.x - STATE_RADIUS - 44, state.y + 6, state.x - STATE_RADIUS - 4, state.y + 28);
+    }
+  }
+  for (const curve of curves)
+    include(
+      curve.bounds.left - 50,
+      curve.bounds.top - 30,
+      curve.bounds.right + 50,
+      curve.bounds.bottom + 30,
+    );
+  return {
+    left: left - FIT_PADDING,
+    top: top - FIT_PADDING,
+    right: right + FIT_PADDING,
+    bottom: bottom + FIT_PADDING,
+  };
+}
+
 /** Keep the current world viewport available when a draft's content bounds shrink. */
 export function layoutViewport(bounds: Bounds, camera: Camera, size: ViewSize): ViewLayout {
   const halfWidth = size.width / camera.zoom / 2,

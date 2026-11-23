@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -10,6 +11,7 @@ import { createPortal } from 'react-dom';
 import type { MachineDef, Step } from '../domain/contracts';
 import { buildDiagram, type DEdge } from '../diagram/layout';
 import { DiagramInk, type DiagramPresentation, type Travel } from './diagram-ink';
+import { field } from './field';
 import type { FrameClock } from './frame-clock';
 
 export interface StateDiagramProps {
@@ -109,6 +111,16 @@ export function StateDiagram({
     observer?.observe(host);
     window.addEventListener('resize', measure);
     measure();
+    // html[data-theme] (and the high-contrast class) can move inside a View Transition's
+    // update callback; repaint in the observer's microtask so the new snapshot is correct.
+    const themeObserver =
+      typeof MutationObserver === 'undefined'
+        ? undefined
+        : new MutationObserver(() => renderer.refreshTheme());
+    themeObserver?.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'class'],
+    });
     const idle: Travel = { progress: 0 };
     const unsubscribe = clock.subscribe((dt, signals) => {
       const props = propsRef.current;
@@ -118,6 +130,7 @@ export function StateDiagram({
       alive = false;
       unsubscribe();
       observer?.disconnect();
+      themeObserver?.disconnect();
       window.removeEventListener('resize', measure);
       renderer.dispose();
       rendererRef.current = null;
@@ -132,12 +145,17 @@ export function StateDiagram({
     if (viewport.width > 0 && viewport.height > 0)
       rendererRef.current?.configure(machine, data, viewport.width, viewport.height, replayKey);
   }, [machine, data, viewport.width, viewport.height, replayKey, clock]);
+  // The theme prop can commit before html[data-theme] moves (the parent's layout effect
+  // runs after this one), so this only re-reads; the observer above repaints.
   useLayoutEffect(() => {
-    rendererRef.current?.refreshTheme();
+    rendererRef.current?.refreshTheme(false);
   }, [theme]);
   useLayoutEffect(() => {
     rendererRef.current?.invalidate();
   }, [cursor, activeState]);
+  // A node removed or replaced under the pointer never sends pointerleave, so a
+  // new machine and unmount both release the field's highlight.
+  useEffect(() => () => field.setHoverState(null), [machine]);
 
   const start = data.nodes.find((node) => node.id === machine.start);
   const overflow = data.width > viewport.width || data.height > viewport.height;
@@ -232,6 +250,8 @@ export function StateDiagram({
                   title={description}
                   aria-current={active ? 'true' : undefined}
                   onClick={() => onInspect?.(node.id)}
+                  onPointerEnter={() => field.setHoverState(node.id)}
+                  onPointerLeave={() => field.setHoverState(null)}
                 >
                   <span className="diagram-node-name">{node.id}</span>
                   {node.out !== undefined && (
@@ -246,6 +266,7 @@ export function StateDiagram({
               className={`diagram-start-label${presentation.startVisible ? ' is-visible' : ''}`}
               aria-hidden="true"
               style={{
+                // layout.ts reserves r + 72 left of the start state; the clamp is a safety net.
                 transform: `translate3d(${Math.max(4, start.x - start.r - 60)}px,${start.y + 12}px,0)`,
               }}
             >

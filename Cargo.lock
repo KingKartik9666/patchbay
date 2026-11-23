@@ -2937,6 +2937,9 @@ dependencies = [
  "tauri-build",
  "tempfile",
  "tokio",
+ "window-vibrancy",
+ "windows-sys 0.61.2",
+ "windows-version",
  "xcap",
 ]
 

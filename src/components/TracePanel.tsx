@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import type { Playback, PlaybackState } from '../playback/playback';
+import { field } from '../rendering/field';
 import { Icon } from './Icon';
 import { outputTokens, Transport } from './Bench';
 export function traceText(player: Playback, input: string, kind: string): string {
@@ -35,14 +37,14 @@ export function TracePanel({
   const active = playback.cursor ? player.trace.steps[playback.cursor - 1].to : start;
   const next = player.trace.steps[playback.cursor];
   const output = outputTokens(player, playback.cursor).join(player.trace.outputSeparator);
+  // Closing the drawer under the pointer never sends pointerleave.
+  useEffect(() => () => field.setHoverState(null), []);
   return (
     <section id="panel-trace" className="drawer-panel">
       <div className="trace-counter">
-        <strong id="step-counter">{String(playback.cursor).padStart(2, '0')}</strong>
+        <strong id="step-counter">{playback.cursor}</strong>
         <span>
-          of <b id="total-counter">{String(total).padStart(2, '0')}</b>
-          <br />
-          steps read
+          of <b id="total-counter">{total}</b> steps read
         </span>
         <button id="copy" className="icon-button" aria-label="Copy full trace" onClick={onCopy}>
           <Icon name="copy" />
@@ -108,6 +110,8 @@ export function TracePanel({
                 key={step.i}
                 className={step.i < playback.cursor ? 'read' : ''}
                 aria-current={step.i === playback.cursor - 1 ? 'step' : undefined}
+                onPointerEnter={() => field.setHoverState(step.to)}
+                onPointerLeave={() => field.setHoverState(null)}
               >
                 <td>
                   <button

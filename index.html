@@ -3,8 +3,107 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f4f4f4" />
+    <meta name="theme-color" content="#0C0D0D" />
     <title>Patchbay — Mealy & Moore machines</title>
+    <style id="launch-css">
+/* The launch (DESIGN.md › The launch). Inline so it paints before the bundle; colours are
+   literal, keyed on html[data-theme]; only transform and opacity animate (compositor). The
+   native init script sets html[data-theme] and html[data-launch] before this parses. */
+.launch{display:none}
+html:is([data-launch=full],[data-launch=short],[data-launch=still]) .launch{display:block;position:fixed;inset:0;z-index:2147483000;pointer-events:none;overflow:hidden;contain:strict;user-select:none;--l-ground:#0C0D0D;--l-deep:#1C1E1D;--l-silk:#FAFCFB;--l-muted:#B4BDBA;--l-signal:#DCF1CF;--l-rgb:220,241,207;--l-o:cubic-bezier(.23,1,.32,1);--l-m:cubic-bezier(.77,0,.175,1);--l-c:.98}
+/* The app's first layout can overflow the root for a few frames; its scrollbar would paint over the stage. */
+html:is([data-launch=full],[data-launch=short],[data-launch=still]){scrollbar-width:none}
+html[data-theme=light] .launch{--l-ground:#ECEEF2;--l-deep:#FBFBFD;--l-silk:#0B0C10;--l-muted:#383E49;--l-signal:#0070D1;--l-rgb:0,112,209}
+html[data-launch=skip] .launch,html[data-launch=done] .launch,html[data-capture] .launch{display:none!important}
+@media (forced-colors:active){.launch{display:none!important}}
+.launch :is(div,p,svg){position:absolute;margin:0}
+.launch-ground,.launch-fields,.launch-swirl,.launch-mark,.launch-arc,.launch-comet,.launch svg{inset:0}
+.launch-ground{background:var(--l-ground)}
+.launch-stage{inset:0;margin:auto!important;width:min(100vw,177.78vh);height:min(56.25vw,100vh);container-type:size}
+.launch-fields{--l-c:.12}
+/* Fades the fields into the ground below y 468-666 so the wordmark band stays legible. A mask
+   would clip the fields to the stage box; the veil extends past it. Scales and fades with them. */
+.launch-veil{left:-50%;right:-50%;top:0;bottom:-60%;background:linear-gradient(transparent 32.5%,var(--l-ground) 46.25%)}
+.launch-fields,.launch-swirl,.launch-mark{transform-origin:50% 42.222%}
+html[data-theme=light] .launch-swirl{opacity:.8}
+.launch-field{--l-s:.6;opacity:.85}
+.is-mealy{width:68.75cqw;height:68.75cqw;left:calc(32.5% - 34.375cqw);top:calc(62.222% - 34.375cqw);background:radial-gradient(closest-side,rgba(255,92,122,.85),rgba(255,181,71,.35) 55%,transparent 72%)}
+.is-moore{width:62.5cqw;height:62.5cqw;left:calc(63.75% - 31.25cqw);top:calc(33.333% - 31.25cqw);background:radial-gradient(closest-side,rgba(91,140,255,.85),rgba(160,124,255,.35) 55%,transparent 72%)}
+.launch-mark{--l-c:.3}
+.launch-arc,.launch-comet{transform-origin:50% 86.667%}
+.launch svg{width:100%;height:100%;overflow:visible}
+.launch-ring{left:41.25%;top:26.667%;width:17.5cqw;height:17.5cqw}
+.launch-core{fill:var(--l-deep)}
+.launch-comet i{position:absolute;left:27.0625%;top:63.111%;width:1.125cqw;height:1.125cqw;margin:-.5625cqw;border-radius:50%;background:#fff;box-shadow:0 0 1.2cqw .35cqw rgba(255,92,122,.8)}
+.launch-jack{--l-c:.6;left:47.5%;top:37.778%;width:5cqw;height:5cqw}
+.launch-jack i{display:block;width:100%;height:100%;border-radius:50%;background:var(--l-signal);box-shadow:0 0 0 .375cqw rgba(var(--l-rgb),.18),0 0 3.5cqw .75cqw rgba(var(--l-rgb),.35)}
+.launch-word,.launch-sub{left:0;right:0;text-align:center;white-space:nowrap}
+.launch-word{top:calc(71.111% - 3.5cqw);font:400 7cqw/1 'Newsreader','Iowan Old Style',Georgia,serif;letter-spacing:-.02em;color:var(--l-silk)}
+.launch-sub{top:calc(79.556% - .95cqw);font:500 1.9cqw/1 'Inter Variable','Segoe UI Variable','Segoe UI',system-ui,sans-serif;color:var(--l-muted)}
+html[data-launch-contrast] :is(.launch-fields,.launch-comet){display:none}
+html[data-launch-contrast] .launch-stroke{stroke:var(--l-silk)}
+html[data-launch-contrast] .launch-head{fill:var(--l-silk)}
+@media (prefers-contrast:more){:is(.launch-fields,.launch-comet){display:none}.launch-stroke{stroke:var(--l-silk)}.launch-head{fill:var(--l-silk)}}
+/* Full, the first start of a version: 2,240ms, hand-off at 1,640. */
+html[data-launch=full]{
+.launch{animation:launch-condense 1640ms linear both,launch-watchdog 1ms 3040ms forwards}
+.launch-ground{animation:launch-out 600ms var(--l-o) 1640ms both}
+:is(.launch-fields,.launch-mark){animation:l-shrink 460ms var(--l-m) 1180ms forwards}
+.launch-swirl{animation:l-swirl 600ms var(--l-m) 900ms both}
+.launch-field{animation:l-in 540ms var(--l-o) 80ms both}
+.launch-ring{--l-s:.86;animation:l-in 540ms var(--l-o) 80ms both,l-pulse 120ms var(--l-o) 900ms}
+.launch-arc{animation:l-swing 700ms var(--l-o) 200ms both}
+.launch-comet{animation:l-ride 620ms var(--l-m) 280ms both,l-blink 680ms linear 280ms both}
+.launch-jack i{--l-s:.4;animation:l-in 220ms var(--l-o) 900ms both}
+.launch-word{animation:l-rise 560ms var(--l-o) 620ms both,l-shrink 300ms var(--l-o) 1500ms forwards}
+.launch-sub{--l-s:1;animation:l-in 480ms var(--l-o) 760ms both,l-shrink 300ms var(--l-o) 1500ms forwards}
+}
+/* Short, later starts: 900ms, no comet or wordmark, hand-off at 600. */
+html[data-launch=short]{
+:is(.launch-comet,.launch-word,.launch-sub){display:none}
+.launch{animation:launch-condense 600ms linear both,launch-watchdog 1ms 1700ms forwards}
+.launch-ground{animation:launch-out 300ms var(--l-o) 600ms both}
+:is(.launch-fields,.launch-mark){animation:l-shrink 220ms var(--l-m) 420ms forwards}
+.launch-field{--l-s:.92;--l-b:.7;animation:l-in 360ms var(--l-o) 60ms both}
+:is(.launch-ring,.launch-arc){animation:l-in 360ms var(--l-o) 60ms both}
+.launch-jack i{--l-s:.4;animation:l-in 160ms var(--l-o) 360ms both,l-shrink 300ms var(--l-o) 600ms forwards}
+}
+/* Still (reduced motion, high contrast, quality Low): the impact frame, then a 180ms fade. */
+html[data-launch=still]{
+.launch-comet{display:none}
+.launch{animation:launch-out 180ms linear 300ms both,launch-watchdog 1ms 1280ms forwards}
+.launch :is(div,i,p){animation:none}
+}
+@media (prefers-reduced-motion:reduce){html[data-launch]{
+.launch-comet{display:none}
+:is(.launch-word,.launch-sub){display:block}
+.launch{animation:launch-out 180ms linear 300ms both,launch-watchdog 1ms 1280ms forwards}
+.launch :is(div,i,p){animation:none}
+}}
+@keyframes l-in{from{opacity:0;transform:scale(var(--l-s,.92))}to{opacity:var(--l-b,1);transform:none}}
+@keyframes l-shrink{from{opacity:1;transform:none}to{opacity:0;transform:scale(var(--l-c))}}
+@keyframes l-swing{from{opacity:0;transform:rotate(-28deg)}to{opacity:1;transform:none}}
+@keyframes l-swirl{from{transform:none}to{transform:rotate(24deg) scale(1.08)}}
+@keyframes l-pulse{50%{transform:scale(1.05)}}
+@keyframes l-ride{from{transform:none}to{transform:rotate(40.7deg)}}
+@keyframes l-blink{from{opacity:0}11.765%,91.176%{opacity:1}to{opacity:0}}
+@keyframes l-rise{from{opacity:0;transform:translateY(.875cqw) scale(1.04)}to{opacity:1;transform:none}}
+@keyframes launch-out{from{opacity:1}to{opacity:0}}
+/* A composited no-op whose end is the hand-off (launch.ts). */
+@keyframes launch-condense{from,to{opacity:1}}
+/* If the bundle never runs, the stage still goes away. */
+@keyframes launch-watchdog{from,to{visibility:hidden}}
+    </style>
   </head>
-  <body><div id="app"></div><script type="module" src="/src/main.tsx"></script></body>
+  <body>
+    <div class="launch" aria-hidden="true"><div class="launch-ground"></div><div class="launch-stage">
+<div class="launch-fields"><div class="launch-swirl"><div class="launch-field is-mealy"></div><div class="launch-field is-moore"></div></div><div class="launch-veil"></div></div>
+<div class="launch-mark"><div class="launch-arc"><svg viewBox="0 0 1600 900"><linearGradient id="launch-a" gradientUnits="userSpaceOnUse" x1="433" y1="568" x2="660" y2="380"><stop stop-color="#FF5C7A"/><stop offset="1" stop-color="#FFB547"/></linearGradient><path class="launch-stroke" d="M433 568A424 424 0 0 1 641.2 386.9" fill="none" stroke="url(#launch-a)" stroke-width="14" stroke-linecap="round"/><path class="launch-head" d="M660 380 637.3 406 626.1 373.9Z" fill="#FFB547"/></svg></div>
+<div class="launch-comet"><i></i></div>
+<div class="launch-ring"><svg viewBox="0 0 280 280"><linearGradient id="launch-r" x2="1" y2="1"><stop stop-color="#5B8CFF"/><stop offset="1" stop-color="#A07CFF"/></linearGradient><circle class="launch-core" cx="140" cy="140" r="118"/><circle class="launch-stroke" cx="140" cy="140" r="132" fill="none" stroke="url(#launch-r)" stroke-width="14"/></svg></div></div>
+<div class="launch-jack"><i></i></div><p class="launch-word">Patchbay</p><p class="launch-sub">Mealy &amp; Moore machines</p>
+    </div></div>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

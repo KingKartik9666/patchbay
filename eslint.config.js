@@ -13,6 +13,8 @@ export default tseslint.config(
       'tmp/**',
       'artifacts/**',
       'src-tauri/gen/**',
+      '.work/**',
+      '.taste-skill/**',
     ],
   },
   js.configs.recommended,

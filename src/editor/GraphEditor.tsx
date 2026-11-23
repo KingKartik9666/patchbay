@@ -331,7 +331,12 @@ export function GraphEditor(props: GraphEditorProps) {
       aria-busy={disabled}
     >
       <div className="graph-toolbar" aria-label="Graph editing tools">
-        <div className="graph-tool-group">
+        <div
+          className="graph-tool-group fill-capsule graph-file-tools"
+          data-group="file"
+          role="group"
+          aria-label="File"
+        >
           <button
             id="graph-new"
             type="button"
@@ -348,92 +353,6 @@ export function GraphEditor(props: GraphEditorProps) {
           >
             New machine
           </button>
-          <label className="graph-kind-label" htmlFor="graph-kind">
-            Type
-            <select
-              id="graph-kind"
-              value={draft.kind}
-              disabled={disabled}
-              onChange={(event) => {
-                resetInteraction();
-                void submitEdit(
-                  { type: 'setKind', kind: event.target.value as MachineKind },
-                  `Drawing type changed to ${event.target.value === 'mealy' ? 'Mealy' : 'Moore'}.`,
-                );
-              }}
-            >
-              <option value="mealy">Mealy</option>
-              <option value="moore">Moore</option>
-            </select>
-          </label>
-        </div>
-        <div className="graph-tool-group graph-draw-tools" role="group" aria-label="Drawing mode">
-          <button
-            id="graph-select"
-            type="button"
-            className="graph-button"
-            aria-pressed={tool === 'select'}
-            disabled={disabled}
-            onClick={() => changeTool('select')}
-          >
-            Select / move
-          </button>
-          <button
-            id="graph-connect"
-            type="button"
-            className="graph-button"
-            aria-pressed={tool === 'connect'}
-            disabled={disabled}
-            onClick={() => changeTool('connect')}
-          >
-            Connect
-          </button>
-          <button
-            id="graph-add-state"
-            type="button"
-            className="graph-button"
-            disabled={disabled}
-            onClick={() => {
-              void addState(viewCenterRef.current);
-            }}
-          >
-            + State
-          </button>
-          <button
-            id="graph-add-transition"
-            type="button"
-            className="graph-button"
-            disabled={disabled}
-            onClick={() => openTransition()}
-          >
-            + Transition
-          </button>
-        </div>
-        <div className="graph-tool-group graph-history" role="group" aria-label="Edit history">
-          <button
-            id="graph-undo"
-            type="button"
-            className="graph-button"
-            aria-label="Undo graph edit"
-            title="Undo (Ctrl+Z)"
-            disabled={disabled || !canUndo}
-            onClick={() => history(false)}
-          >
-            Undo
-          </button>
-          <button
-            id="graph-redo"
-            type="button"
-            className="graph-button"
-            aria-label="Redo graph edit"
-            title="Redo (Ctrl+Shift+Z)"
-            disabled={disabled || !canRedo}
-            onClick={() => history(true)}
-          >
-            Redo
-          </button>
-        </div>
-        <div className="graph-tool-group graph-file-tools">
           <button
             id="graph-open"
             type="button"
@@ -467,6 +386,109 @@ export function GraphEditor(props: GraphEditorProps) {
           >
             Text definition
           </button>
+        </div>
+        <div
+          className="graph-tool-group fill-capsule graph-draw-tools"
+          data-group="edit"
+          role="group"
+          aria-label="Drawing tools"
+        >
+          <div
+            className="graph-mode-switch"
+            data-tool={tool}
+            role="group"
+            aria-label="Drawing mode"
+          >
+            <button
+              id="graph-select"
+              type="button"
+              aria-pressed={tool === 'select'}
+              title="Select and move states"
+              disabled={disabled}
+              onClick={() => changeTool('select')}
+            >
+              Select
+            </button>
+            <button
+              id="graph-connect"
+              type="button"
+              aria-pressed={tool === 'connect'}
+              title="Draw arrows between states"
+              disabled={disabled}
+              onClick={() => changeTool('connect')}
+            >
+              Connect
+            </button>
+          </div>
+          <button
+            id="graph-add-state"
+            type="button"
+            className="graph-button"
+            disabled={disabled}
+            onClick={() => {
+              void addState(viewCenterRef.current);
+            }}
+          >
+            Add state
+          </button>
+          <button
+            id="graph-add-transition"
+            type="button"
+            className="graph-button"
+            disabled={disabled}
+            onClick={() => openTransition()}
+          >
+            Add transition
+          </button>
+          <label className="graph-kind-label" htmlFor="graph-kind">
+            Type
+            <select
+              id="graph-kind"
+              value={draft.kind}
+              disabled={disabled}
+              onChange={(event) => {
+                resetInteraction();
+                void submitEdit(
+                  { type: 'setKind', kind: event.target.value as MachineKind },
+                  `Drawing type changed to ${event.target.value === 'mealy' ? 'Mealy' : 'Moore'}.`,
+                );
+              }}
+            >
+              <option value="mealy">Mealy</option>
+              <option value="moore">Moore</option>
+            </select>
+          </label>
+        </div>
+        <div
+          className="graph-tool-group fill-capsule graph-history"
+          data-group="history"
+          role="group"
+          aria-label="Edit history"
+        >
+          <button
+            id="graph-undo"
+            type="button"
+            className="graph-button"
+            aria-label="Undo graph edit"
+            title="Undo (Ctrl+Z)"
+            disabled={disabled || !canUndo}
+            onClick={() => history(false)}
+          >
+            Undo
+          </button>
+          <button
+            id="graph-redo"
+            type="button"
+            className="graph-button"
+            aria-label="Redo graph edit"
+            title="Redo (Ctrl+Shift+Z)"
+            disabled={disabled || !canRedo}
+            onClick={() => history(true)}
+          >
+            Redo
+          </button>
+        </div>
+        <div className="graph-tool-group" data-group="run" role="group" aria-label="Run">
           <button
             id="graph-run"
             type="button"
@@ -474,7 +496,7 @@ export function GraphEditor(props: GraphEditorProps) {
             disabled={disabled}
             onClick={run}
           >
-            Run machine <span aria-hidden="true">↗</span>
+            Run machine
           </button>
         </div>
       </div>
@@ -483,7 +505,7 @@ export function GraphEditor(props: GraphEditorProps) {
         role="group"
         aria-label="Defaults for drawing transitions"
       >
-        <span className="graph-eyebrow">Draw arrows</span>
+        <span className="graph-drawing-title">New arrows</span>
         <label htmlFor="graph-draw-input">
           Input
           <select

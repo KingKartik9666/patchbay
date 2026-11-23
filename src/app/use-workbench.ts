@@ -12,7 +12,7 @@ import type {
 } from '../domain/contracts';
 import { desktop, domain, errorMessage } from '../domain/client';
 import { buildDiagram } from '../diagram/layout';
-import { initialState, WorkbenchStore, type WorkbenchState } from './state';
+import { initialState, noBackdrop, WorkbenchStore, type WorkbenchState } from './state';
 import { SessionWriter } from './session-writer';
 
 function positions(machine: MachineDef) {
@@ -32,6 +32,7 @@ export function sessionSnapshot(state: WorkbenchState): SavedSession | null {
         manualDraft: state.manualDraft,
         route: state.page,
         graph: state.graph?.draft ?? null,
+        launchSeen: state.launchSeen,
       }
     : null;
 }
@@ -106,6 +107,8 @@ export function useWorkbench() {
       dispatch({
         type: 'patch',
         value: {
+          // A backend without native material support (or a mocked one) keeps the frame opaque.
+          backdrop: startup.backdrop ?? noBackdrop,
           evaluation,
           input,
           presets,
@@ -120,8 +123,15 @@ export function useWorkbench() {
                 focusMode: saved.focusMode,
                 highContrast: saved.highContrast,
                 mooreInitial: saved.mooreInitial,
+                // Optional so mocked or older backends still boot.
+                launchAnimation: saved.launchAnimation ?? true,
+                frameRate: saved.frameRate ?? 'match',
               }
             : initialState.preferences,
+          // A launch that settled before the session arrived has already
+          // recorded this version; keep it over the older saved value.
+          launchSeen: current.current.launchSeen ?? saved?.launchSeen ?? null,
+          version: startup.version,
           page: saved?.route ?? 'bench',
           manualDraft: saved?.manualDraft ?? null,
           manualErrors,
@@ -136,7 +146,7 @@ export function useWorkbench() {
       if (ticket === bootGeneration.current)
         dispatch({ type: 'patch', value: { loadError: errorMessage(error) } });
     }
-  }, [dispatch]);
+  }, [dispatch, current]);
   const cancelPending = useCallback(() => {
     bootGeneration.current++;
     generation.current++;
@@ -529,6 +539,15 @@ export function useWorkbench() {
       message(errorMessage(error));
     }
   }, [message, current]);
+  /** Records that this version's launch was played or skipped, so the next
+   * start plays the short variant. */
+  const markLaunchSeen = useCallback(
+    (version: string) => {
+      if (version && current.current.launchSeen !== version)
+        dispatch({ type: 'patch', value: { launchSeen: version } });
+    },
+    [current, dispatch],
+  );
   const flush = useCallback(async () => {
     clearTimeout(manualTimer.current);
     if (current.current.manualDirty) await validateText();
@@ -550,6 +569,7 @@ export function useWorkbench() {
     validateText: (apply = false) => track(validateText(apply)),
     route: (page: Page, panel: Panel = null) => track(route(page, panel)),
     setPreferences,
+    markLaunchSeen,
     editGraph: (edit: GraphEdit) => track(editGraph(edit)),
     newGraph: (kind: MachineKind) => track(newGraph(kind)),
     history,

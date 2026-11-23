@@ -28,6 +28,8 @@
     "test:ui": "node tests/native-ui.mjs",
     "test:appearance": "node tests/native-appearance.mjs",
     "test:session": "node tests/native-session.mjs",
+    "test:launch": "node tests/native-launch.mjs",
+    "test:refresh": "node tests/native-refresh.mjs",
     "test:graph": "node tests/frontend/graph-editor-browser.mjs",
     "test:renderers": "node tests/react-renderers.mjs",
     "test:browser": "npm run test:graph && npm run test:renderers",
