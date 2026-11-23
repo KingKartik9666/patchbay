@@ -33,7 +33,7 @@ pub struct SavedSession {
     pub moore_initial: bool,
     // Added after version 2 shipped. Defaults keep older sessions loading
     // unchanged, so SESSION_VERSION stays 2 (an older Patchbay reading a newer
-    // session falls back to its recovery path; see docs/versions.md).
+    // session falls back to its recovery path).
     #[serde(default = "default_true")]
     pub launch_animation: bool,
     /// The app version whose launch was last played or skipped.

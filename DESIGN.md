@@ -324,7 +324,7 @@ Strategy: **restrained, one accent per theme.** Night neutrals carry a faint sag
 
 `:root` and `html[data-theme='dark']` hold Night; `html[data-theme='light']` holds Pearl. The persisted theme is written to `html[data-theme]` by the Rust initialization script before the first paint, and the native window background is the active theme's `--mask`, so no frame ever shows the other theme.
 
-All ratios are WCAG 2.x, measured by `.work/palette/audit.mjs` and `extras.mjs` (0 failures over 216 audited pairs, re-run 2026-10-30) with the same composite maths as `scripts/check-bundle.mjs`.
+All ratios are WCAG 2.x (0 failures over 216 audited pairs, measured 2026-10-30). `npm run check:bundle` re-checks the shipped tokens with the same composite maths.
 
 ### Night (dark, default)
 
@@ -436,7 +436,7 @@ The pill glow is the reference's soft green bloom under "See work": it fades ove
 
 ## Typography
 
-- **Display serif: Newsreader 400** (`src/fonts/newsreader-latin-400-normal.woff2`, 22,480 B, OFL, `public/licenses/Newsreader-OFL.txt`; from `@fontsource/newsreader@5.3.0`). It is the closest local match to the reference's "Bold thinking, Better design." headline (`.work/fontprobe/cmp.png`). Used only for large titles and the launch wordmark, identically in both themes. `--serif: 'Newsreader', 'Iowan Old Style', Georgia, serif`; `font-display: block`.
+- **Display serif: Newsreader 400** (`src/fonts/newsreader-latin-400-normal.woff2`, 22,480 B, OFL, `public/licenses/Newsreader-OFL.txt`; from `@fontsource/newsreader@5.3.0`). It is the closest local match to the reference's "Bold thinking, Better design." headline. Used only for large titles and the launch wordmark, identically in both themes. `--serif: 'Newsreader', 'Iowan Old Style', Georgia, serif`; `font-display: block`.
 - **Sans: Inter Variable** for all UI (`--display` keeps Inter first; check-bundle requires it). `font-synthesis: none`, `'liga' 1, 'calt' 1, 'ss02' 1`, antialiased.
 - **Mono: IBM Plex Mono 500** for tape symbols, the input field, transition labels, Moore outputs, examples, formulas, the text definition and code. It keeps 0/O and 1/l/I apart on a projector.
 - Never a network font. Glyphs outside Latin in a machine name fall back to Georgia (serif) or Segoe UI.
@@ -521,7 +521,7 @@ Springs are Apple duration/bounce springs baked into `src/motion/springs.css` as
 | cinematic | .7 / 0            | page content, machine plate                          |
 | bounce    | .6 / .40          | the theme toggle glyph only (9.5% overshoot, settles in 971ms) |
 
-Launch and wave curves (CSS): `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)`; `--ease-move: cubic-bezier(0.77, 0, 0.175, 1)`. Never ease-in.
+Launch curves (inline in index.html): `--l-o: cubic-bezier(.23, 1, .32, 1)`; `--l-m: cubic-bezier(.77, 0, .175, 1)`. Never ease-in.
 
 **Always instant (≤ 1 frame):** Space, arrows, R, B, E, F, Q and Escape; every per-step playback update; typing, focus moves, editor drags and the speed select. Jack and label colours have no transitions; only the build animates.
 

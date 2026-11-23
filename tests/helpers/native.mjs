@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:net';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 export const root = resolve(import.meta.dirname, '../..');
 export const artifacts = resolve(root, 'artifacts/migration');
@@ -29,6 +29,29 @@ function stopStrayInstances() {
     { windowsHide: true, stdio: 'ignore', timeout: 20000 },
   );
 }
+// Every launch gets a fresh session directory under .cache, which the suites
+// read after closing the app. Sweep earlier runs' directories once per process,
+// after stray instances are stopped and before this run creates its own. Only
+// directories untouched for 30 minutes go, so a suite running in another
+// terminal keeps its session and a failed run stays inspectable for a while.
+let previousRunsSwept = false;
+async function sweepPreviousRuns() {
+  if (previousRunsSwept) return;
+  previousRunsSwept = true;
+  const cache = resolve(root, '.cache');
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  const names = await readdir(cache).catch(() => []);
+  await Promise.all(
+    names
+      .filter((name) => /^native-(test|launch)-/.test(name))
+      .map(async (name) => {
+        const path = resolve(cache, name);
+        const { mtimeMs } = await stat(path).catch(() => ({ mtimeMs: Infinity }));
+        if (mtimeMs < cutoff)
+          await rm(path, { recursive: true, force: true, maxRetries: 3 }).catch(() => {});
+      }),
+  );
+}
 /**
  * Starts target/debug/Patchbay.exe with an isolated session and a local CDP port.
  * - `launch`: PATCHBAY_LAUNCH for the debug build (`off|full|short|still`, or
@@ -50,6 +73,7 @@ export async function launchNative({
   early,
 } = {}) {
   stopStrayInstances();
+  await sweepPreviousRuns();
   await mkdir(artifacts, { recursive: true });
   const listener = createServer();
   await new Promise((done) => listener.listen(0, '127.0.0.1', done));

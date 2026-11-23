@@ -96,14 +96,6 @@ export function transformPoint(m: Float32Array, p: Vec3): Vec3 {
   ];
 }
 
-/** Applies only the rotation part, for directions. */
-export function transformDirection(m: Float32Array, d: Vec3): Vec3 {
-  return [
-    m[0] * d[0] + m[4] * d[1] + m[8] * d[2],
-    m[1] * d[0] + m[5] * d[1] + m[9] * d[2],
-    m[2] * d[0] + m[6] * d[1] + m[10] * d[2],
-  ];
-}
 /** Inverse rotation (transpose), for turning world directions into group space. */
 export function inverseDirection(m: Float32Array, d: Vec3): Vec3 {
   return [

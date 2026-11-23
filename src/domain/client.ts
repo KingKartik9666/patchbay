@@ -1,6 +1,5 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
-  AppError,
   DomainRequest,
   DomainResponse,
   Evaluation,
@@ -63,4 +62,3 @@ export const desktop = {
     invoke<boolean>('save_project', { source, format }),
   screenshot: () => invoke<boolean>('save_screenshot'),
 };
-export type DesktopError = AppError;

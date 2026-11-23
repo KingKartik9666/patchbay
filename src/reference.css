@@ -82,14 +82,10 @@
   /* Motion. The spring tokens (--spring-*) come from motion/springs.css. Theme colours never
      tween on surfaces: the wave or the reduced-motion cross-fade carries a theme change. */
   --ease: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-move: cubic-bezier(0.77, 0, 0.175, 1);
-  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --motion-press: 100ms;
   --motion-quick: 150ms;
   --motion-ui: 200ms;
   --motion-exit: 160ms;
-  --motion-slow: 300ms;
   --motion-recede: 400ms;
   --motion-theme: 0ms;
 }
@@ -155,7 +151,6 @@ html[data-theme='dark'] {
   --panel-frost: rgba(17, 19, 18, 0.62);
   --plate-inset: inset 0 2px 10px rgba(0, 0, 0, 0.45);
   --tape-inset: inset 0 2px 6px rgba(0, 0, 0, 0.4);
-  --signal-rgb: 220, 241, 207;
   --signal-glow: 0 0 0 3px rgba(220, 241, 207, 0.16), 0 0 28px 6px rgba(198, 232, 178, 0.3);
   --signal-halo: rgba(220, 241, 207, 0.2);
   --sweep: rgba(220, 241, 207, 0.22);
@@ -295,7 +290,6 @@ html[data-theme='light'] {
   --panel-frost: rgba(245, 246, 249, 0.62);
   --plate-inset: inset 0 2px 8px rgba(16, 24, 40, 0.1);
   --tape-inset: inset 0 2px 6px rgba(16, 24, 40, 0.1);
-  --signal-rgb: 0, 112, 209;
   --signal-glow: 0 0 0 3px rgba(0, 112, 209, 0.16), 0 0 26px 4px rgba(0, 112, 209, 0.3);
   --signal-halo: rgba(0, 112, 209, 0.2);
   --sweep: rgba(0, 112, 209, 0.14);

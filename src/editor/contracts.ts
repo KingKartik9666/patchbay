@@ -1,4 +1,4 @@
-import type { GraphDraft, GraphEdit, GraphResult, MachineKind } from '../domain/contracts';
+import type { GraphEdit, GraphResult, MachineKind } from '../domain/contracts';
 import type { FrameClock } from '../rendering/frame-clock';
 export interface GraphEditorProps {
   result: GraphResult;
@@ -16,4 +16,3 @@ export interface GraphEditorProps {
   onSave(): void;
   onMessage(message: string): void;
 }
-export type GraphSnapshot = GraphDraft;

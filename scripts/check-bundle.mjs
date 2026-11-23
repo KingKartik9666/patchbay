@@ -1088,8 +1088,7 @@ const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 // plus 6 KB, rounded up to the next 1,000 bytes and capped at 600,000: the build
 // measured 599,628 bytes (132,658 gzip JS), so the cap applies and leaves less
 // than the intended 6 KB of headroom until bytes are cut. Do not
-// raise it further without a new written justification here and in
-// docs/verification.md.
+// raise it further without a new written justification here.
 const budgets = { javascriptGzip: 150000, totalUncompressed: 600000 };
 const report = {
   version: manifest.version,

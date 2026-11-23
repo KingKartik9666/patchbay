@@ -6,15 +6,14 @@ export interface Mesh {
   stride: number;
 }
 
-/** Jack zones decide emission in the fragment shader. */
-export const ZONE = { body: 0, ring: 1, collar: 2, hole: 3 } as const;
-
 /** Jack lathe profile (radius, height toward the camera): outer bezel, recessed
  * socket and pin hole. Ten points, radius 0.42. */
 export const JACK_PROFILE = [
   0.42, -0.1, 0.42, 0.04, 0.4, 0.085, 0.34, 0.105, 0.27, 0.095, 0.25, 0.05, 0.24, -0.06, 0.12,
   -0.07, 0.075, -0.05, 0.05, -0.16,
 ];
+/** Shader zone per profile point (0 body, 1 ring, 2 collar, 3 hole); zones decide
+ * emission in the fragment shader. */
 export const JACK_ZONES = [0, 0, 1, 1, 2, 2, 3, 3, 3];
 /** Floor socket bezel, six points, lying on the floor plane. */
 export const BEZEL_PROFILE = [0.3, 0, 0.3, 0.035, 0.26, 0.065, 0.18, 0.065, 0.15, 0.02, 0.1, 0];

@@ -39,11 +39,8 @@ For the same 256-state, 512-transition, 4096-code-unit workload, 50 warmups and
 500 samples used by the TypeScript baseline:
 
 ```text
-cargo run -p patchbay-core --release --example domain_benchmark -- tests/fixtures/benchmark-input.json crates/patchbay-core/benchmark-results.json
+cargo run -p patchbay-core --release --example domain_benchmark -- tests/fixtures/benchmark-input.json target/benchmark-results.json
 ```
 
 These are pure Rust operation timings including byte-budget checks and destruction
 of returned values. They do not measure IPC, worker scheduling or UI latency.
-See [validation-report.md](validation-report.md) for the latest workspace checks,
-core/session coverage, timing scope, and the fresh benchmark alongside historical
-measurements. The recorded timings do not establish a Rust performance gain.
