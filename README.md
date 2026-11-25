@@ -132,3 +132,7 @@ Input is limited to 4,096 UTF-16 units and project text/files to 1 MiB UTF-8. Th
 Editing inputs retain normal keyboard behavior. Theme changes are the one deliberate exception: Enter or Space on the theme button plays the wave, like a click. States expose transition labels and a polite live region describes playback. Settings provide theme, window material, reduced motion, high contrast, launch animation, rendering quality, frame rate and local frame diagnostics. The diagnostics show the detected display rate, the measured frame rate and the field's mode, render scale, frame rate and the reason for any resolution step. High contrast and reduced transparency use opaque surfaces only. Hidden windows pause the shared animation clock, which stops the field too. Diagnostic readings describe the current session and do not guarantee a particular refresh rate.
 
 Inter Variable, Newsreader and IBM Plex Mono are bundled locally with their OFL texts (`licenses/Inter-OFL.txt`, `licenses/Newsreader-OFL.txt`, `licenses/IBM-Plex-OFL.txt`). Patchbay is MIT licensed. Release notices include the locked runtime packages and a conservative Rust dependency inventory; the shared Microsoft WebView2 runtime is installed separately.
+
+## Maintainer
+
+KingKartik (@KingKartik9666)
